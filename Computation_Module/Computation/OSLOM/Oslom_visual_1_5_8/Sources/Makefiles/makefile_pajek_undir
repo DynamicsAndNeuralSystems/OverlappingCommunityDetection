@@ -1,0 +1,11 @@
+CC=g++
+LOP=-O3 -o
+
+MAIN=./Sources/visualSources/main_pajek
+TAG=pajek_write_undir
+
+
+$(MAIN).o :
+	$(CC) $(LOP) $(TAG) $(MAIN).cpp
+
+

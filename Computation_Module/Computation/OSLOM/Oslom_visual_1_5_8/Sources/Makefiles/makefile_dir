@@ -1,0 +1,11 @@
+CC=g++
+LOP=-O3 -o
+
+MAIN=./Sources/main_directed
+TAG=oslom_dir
+
+
+$(MAIN).o :
+	$(CC) $(LOP) $(TAG) $(MAIN).cpp
+
+

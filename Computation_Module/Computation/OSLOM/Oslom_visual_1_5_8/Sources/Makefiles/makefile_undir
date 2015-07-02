@@ -1,0 +1,11 @@
+CC=g++
+LOP=-O3 -o
+
+MAIN=./Sources/main_undirected
+TAG=oslom_undir
+
+
+$(MAIN).o :
+	$(CC) $(LOP) $(TAG) $(MAIN).cpp
+
+

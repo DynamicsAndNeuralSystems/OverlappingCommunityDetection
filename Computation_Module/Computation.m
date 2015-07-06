@@ -22,8 +22,26 @@ Clauset_final = process_Clauset(Clauset, numnodes); % Processes the output
 % Input is either undirected or directed list, but it will treat them as
 % undirected
 % ------------------------------PARAMETERS---------------------------------
+maxIter = 1000; % Maximum iterations done within the algorithm
+prec = [0 0.1 0.2 0.3]; % Percentage of lowest links to cut before computation
 
 
+% ITERATIONS OF PRECISION
+Gopalan_final = cell(0); % Preallocates the cell for output
+for c = prec
+    % Gets rid of all links weaker than the percentage of precision
+    Input = Undir(Undir(:,3)>quantile(Undir(:,3),c), :);
+    
+    % Runs the Gopalan method
+    run_Gopalan(Input, numnodes, maxIter);
+    
+    % Processes the data
+    [Gopalan_output] = process_Gopalan(numnodes);
+    
+    % Places the data within the final output
+    Gopalan_final{1, end + 1} = Gopalan_output;
+    
+end
 
 %% Jerry
 % Input is Adjacency matrix
@@ -36,7 +54,9 @@ ListeningRule = 'majority';
 
 % Runs the Jerry method
 [Jerry] = run_Jerry(Mat, numIters, Threshold, IsBlind, ListeningRule, numnodes);
-[Jerry_final] = process_Jerry(Jerry, numnodes); % Processes the output
+
+% Processes the output
+[Jerry_final] = process_Jerry(Jerry, numnodes); 
 
 %% Link
 

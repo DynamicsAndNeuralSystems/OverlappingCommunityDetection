@@ -23,12 +23,12 @@ Clauset_final = process_Clauset(Clauset, numnodes); % Processes the output
 % undirected
 % ------------------------------PARAMETERS---------------------------------
 maxIter = 1000; % Maximum iterations done within the algorithm
-prec = [0 0.1 0.2 0.3]; % Percentage of lowest links to cut before computation
-
+prec_Gopalan = [0 0.1 0.2 0.3]; % Percentage of lowest links to cut before computation
 
 % ITERATIONS OF PRECISION
 Gopalan_final = cell(0); % Preallocates the cell for output
-for c = prec
+
+for c = prec_Gopalan
     % Gets rid of all links weaker than the percentage of precision
     Input = Undir(Undir(:,3)>quantile(Undir(:,3),c), :);
     
@@ -40,7 +40,6 @@ for c = prec
     
     % Places the data within the final output
     Gopalan_final{1, end + 1} = Gopalan_output;
-    
 end
 
 %% Jerry
@@ -59,8 +58,26 @@ ListeningRule = 'majority';
 [Jerry_final] = process_Jerry(Jerry, numnodes); 
 
 %% Link
+% Input is undirected list
+% ------------------------------PARAMETERS---------------------------------
+prec_Link = [0 0.01 0.1]; % Percentage of lowest links to cut before computation
 
+% ITERATIONS OF PRECISION
+Link_final = cell(0); % Preallocates the cell for output
 
+for c = prec_Link
+    % Gets rid of all links weaker than the percentage of precision
+    Input = Undir(Undir(:,3)>quantile(Undir(:,3),c), :);
+    
+    % Runs the link communities method
+    run_Link(Input);
+    
+    % Processes the textfile outputs
+    Link_output = process_Link(numnodes);
+    
+    % Places the data within the final output
+    Link_final{1, end + 1} = Link_output;
+end
 
 %% NNMF
 % Input is Adjacency matrix
@@ -97,4 +114,18 @@ lThresh = 0; % Threshold on links, 0 because we want to preserve data
 
 % Processes the data into the matrix
 [Shen_final] = process_Shen(Shen, numnodes);
+
+%% Constructing the structure
+Computation = struct([]);
+
+
+
+
+
+
+
+
+
+
+
 

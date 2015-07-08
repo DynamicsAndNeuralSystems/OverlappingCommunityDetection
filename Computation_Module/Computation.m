@@ -13,6 +13,14 @@ Undir = Direct2Undir(DirList); % Calls function to make undirected input
 
 %% Creating the final structure
 Final = struct('Date', date);
+Final.Network = Mat; % Saves the matrix of the network
+
+%% Benchmark
+% Processes the data from the benchmark
+[BenchComm] = process_Benchmark(numnodes);
+
+% Places it in the final structure data
+Final.Benchmark = struct('Name', 'Benchmark', 'Result', BenchComm);
 
 %% Clauset - uses weighted directed list as an input
 % This method is relatively easy - it uses a directed list of connections
@@ -139,4 +147,7 @@ lThresh = 0; % Threshold on links, 0 because we want to preserve data
 % Places the structure data in
 Final.Shen = struct('Name', 'Shen', 'Result', Shen_final);
 
+%% Saving data
+save('Computation_Result', 'Final');
 
+clc; disp('All computation is complete!');

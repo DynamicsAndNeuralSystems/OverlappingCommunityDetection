@@ -2,7 +2,7 @@ function [] = run_Link(Undir)
 % Function that runs the link communities command
 
 % Goes into the directory required
-cd Modules/Computation_Module/Computation/Link;
+cd Modules/Computation_Module/SourceCode/Link;
 
 fid = fopen('Link.txt', 'w'); % Creates text file
 fprintf(fid, '%g\t%g\t%f\n', Undir'); % Places data within file

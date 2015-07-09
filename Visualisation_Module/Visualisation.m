@@ -24,7 +24,7 @@ disp('Nodes have been sorted into communities');
 
 %% Initial matrix view
 full_Matrix = Final.Network/max(max(Final.Network)); % Normalises the data for plotting
-% full_Matrix = full_Matrix(I, I); % Moves the nodes to their sorted locations
+full_Matrix = full_Matrix(I, I); % Moves the nodes to their sorted locations
 full_Matrix(full_Matrix == 0) = NaN; % Turns the 0s to NaNs for easy plotting
 disp('Plotted network matrix.');
 StartPos = size(full_Matrix, 2) + 0.5; % Starting position of x position
@@ -61,7 +61,7 @@ colorbar('location', 'eastoutside'); % Shows a colour bar
 for name = MethodName
     % Plots a starting line, so that algorithms can be separated
     plot([StartPos, StartPos], [0, numnodes + 1], 'k');
-    CommMat = Final.(name{1}).Result(:, :);
+    CommMat = Final.(name{1}).Result(I, :);
     
     for y = 1:numnodes
         

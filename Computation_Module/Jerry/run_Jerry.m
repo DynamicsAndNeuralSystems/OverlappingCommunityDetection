@@ -1,4 +1,14 @@
 function [NodeMembership] = run_Jerry(AdjMat, NumIter, Thresholds, IsBlind, ListeningRule, NumNodes)
+
+%% Check inputs and set defaults
+if nargin < 2 || isempty(NumIter)
+    NumIter = 1000;
+end
+if nargin < 3 || isempty(Thresholds)
+    Thresholds = 0.1;
+end
+
+%% Code
 % Function that runs the Jerry algorithm on a network
 % Adapted from code by Ben Fulcher
 

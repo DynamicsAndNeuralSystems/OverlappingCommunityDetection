@@ -1,6 +1,11 @@
-% clc; close all; clear all; startup;
 function Final = Computation(input, Methods,isBenchmark, benchfilename)
 % Program that computes algorithms for a specific network
+%
+% INPUTS:
+% input: adjacency matrix (or list of links in format ''node1, node2, weight'' as matrix)
+% Methods: cell of names of methods to be tested
+% isBenchmark: 1 for benchmark (otherwise 0)
+% benchfilename: name of text file containing benchmark data
 % Brandon Lam, 29-06-2015
 
 %% IMPORTANT
@@ -27,27 +32,29 @@ if isBenchmark == 1 && isempty(benchfilename)
     error('Error: Please input filename of benchmark community file');
 end
 
+%-------------------------------------------------------------------------------
 %% Converting the input into all the formats
+%-------------------------------------------------------------------------------
 
 if size(input, 1) == size(input, 2) % If matrix
     Mat = input;
     numnodes = size(Mat, 1); % Number of nodes
-    
+
     DirList = Mat2Direct(Mat, numnodes); % Calls function to convert matrix to directed list
     Undir = Direct2Undir(DirList); % Calls function to make undirected input
-    
+
 elseif size(input, 3) % List format
     if sum(input(:, 1) > input(:, 2)) == 0 % If undirected
-        Undir = input; 
+        Undir = input;
         numnodes = max(max(Undir(:, 1:2))); % Calculates the number of nodes in the system
-        
+
         DirList = Undir2Direct(Undir); % Converts undirected to directed list
         Mat = Direct2Matrix(DirList, numnodes); % Calls function to make matrix input
     else % If directed
-        
-        DirList = input; 
+
+        DirList = input;
         numnodes = max(max(DirList(:, 1:2))); % Calculates the number of nodes in the system
-        
+
         Mat = Direct2Matrix(DirList, numnodes); % Calls function to make matrix input
         Undir = Direct2Undir(DirList); % Calls function to make undirected input
     end
@@ -55,7 +62,16 @@ else
     error('Error: Input is not one of the accepted formats');
 end
 
+% So now we have 3 representations of the same object:
+ % Mat: adjacency matrix (full)
+ % DirList: list of edges
+ % Undir: **NOT YET** undirected transformation of matrix (either edge exists counted as link)
+
+%-------------------------------------------------------------------------------
 %% Creating the final structure
+% -- all the results of the specified algorithms is stored in a single structure
+% called 'Final' (along with benchmark if specified, and data of run), and adjacency matrix
+%-------------------------------------------------------------------------------
 Final = struct('Date', date);
 Final.Network = Mat; % Saves the matrix of the network
 
@@ -63,7 +79,7 @@ Final.Network = Mat; % Saves the matrix of the network
 if isBenchmark
     % Processes the data from the benchmark
     [BenchComm] = process_Benchmark(benchfilename, numnodes);
-    
+
     % Places it in the final structure data
     Final.Benchmark = struct('Name', 'Benchmark', 'Result', BenchComm);
 end

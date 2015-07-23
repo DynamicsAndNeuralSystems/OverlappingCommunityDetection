@@ -13,7 +13,7 @@ def readParameters(fp=None):
     ### pickle: -1 disabled, 0 store, 1 load
     ### log: - stdout, + auto filename, * both, other filename
     ### normalize comp: flip comparison edges A>B to A<B
-    ### try simply: try finding simpler clauses when remapping 
+    ### try simply: try finding simpler clauses when remapping
     ### try V: which shapes to try 1 /\, 2 \/, 3 -- positive indices: even if simple edge has enough support
     org_parameters = {'verbosity': 3, 'logfile': "+", "ego": -1, "center":"", "min_supp": 3,
                       'results_rep': "../results/", "data_rep":"../data/", "min_count": 1.0, "action": "mine",
@@ -64,7 +64,7 @@ def readGraph(filename, min_weight=None, center=None):
             if sep is None:
                 tmp = re.match("^(?P<from>[^\t]*)\t(?P<to>[^\t]*)(\t(?P<count>[0-9.]*) *)?$", line.strip())
                 if tmp is None:
-                    sep = " "                    
+                    sep = " "
                 else:
                     sep = "\t"
             tmp = re.match("^(?P<from>[^"+sep+"]*)"+sep+"(?P<to>[^"+sep+"]*)("+sep+"(?P<count>[0-9.]*) *)?$", line.strip())
@@ -141,7 +141,7 @@ def readLabelsS(lfilename, graph=None, min_cl=0):
                     keep = set(ndlb_dict[cnode].keys()) - remove
                     ndlb_dict[cnode] = dict([(k, ndlb_dict[cnode][k]) for k in keep if ndlb_dict[cnode][k]/sm >= data_parameters["min_frac"] and ndlb_dict[cnode][k] >= data_parameters["min_count"]])
                     cnode = tmp.group("node")
-                    
+
                 if tmp.group("term") not in stop_words:
                     if ndlb_dict.has_key(tmp.group("node")):
                         ndlb_dict[tmp.group("node")][tmp.group("term")] = int(tmp.group("count"))
@@ -222,7 +222,7 @@ def edgesOut(graph, fname_grl, fname_grd):
     fo.close()
 
     lsdict = dict([(v,i+1) for i,v in enumerate(uls)])
-    
+
     fo = openMakeP(fname_grd, "w")
     for k, vs in graph.items():
         fo.write(("\n".join(["%d %d" % (ldict[k], ldict[t]) for t in vs.keys()]))+"\n")
@@ -236,7 +236,7 @@ def graphOut(graph, fname_grl, fname_grd, weighted=False):
     fo.close()
 
     lsdict = dict([(v,i+1) for i,v in enumerate(uls)])
-    
+
     fo = openMakeP(fname_grd, "w")
     if weighted:
         fo.write("%d %d 001\n" % (len(lsdict), sum([len(k) for k in graph.values()])/2))
@@ -252,11 +252,11 @@ def graphOut(graph, fname_grl, fname_grd, weighted=False):
     fo.close()
     return uls
 
-def externalOut(graph, nodes_to_labels, basis):    
+def externalOut(graph, nodes_to_labels, basis):
     nls = getNodeOrds(graph)
 
     #### GRAPH EDGES LIST AND METIS FORMAT
-    lsdict = dict([(v,i+1) for i,v in enumerate(nls)])    
+    lsdict = dict([(v,i+1) for i,v in enumerate(nls)])
     fe = openMakeP(basis+".ledges", "w")
     fo = openMakeP(basis+".metis", "w")
     fo.write("%d %d\n" % (len(lsdict), sum([len(k) for k in graph.values()])/2))
@@ -303,7 +303,7 @@ def addGroup(ti, scr, lspec, edgeset, nodeset, labelset=None, covered=None, cove
         else:
             newnodes = nodeset.difference(coveredn)
     nn = len(nodeset)
-    
+
     if type(covered) == dict:
         for edge in newedges:
             covered[edge] = ti
@@ -406,7 +406,7 @@ def getNodeOrds(graph):
 ### to print the node names rather than num id
 def getNodeId(node, graph, data_parameters):
     return node
-        
+
 def projectGraph(nodes, graph, min_weight=None):
     subgraph = {}
     for node in nodes:
@@ -438,7 +438,7 @@ def getEdgesCands(nodes_to_labels, graph, data_parameters, store=True):
     else:
         labels_to_edges, edges_to_labels = data_parameters["labels_to_edges"], data_parameters["edges_to_labels"]
     return labels_to_edges, edges_to_labels
-        
+
 def cleanLabels(ndlb_dict, data_parameters):
     for a in ndlb_dict.keys():
         sm = float(sum(ndlb_dict[a].values()))
@@ -496,7 +496,7 @@ def spreadLabels(graph, ndlb_dict, data_parameters):
         #     if re.search("c:[0-9]", node) and re.search("C[0-9]", label):
         #         print node, label
         #         pdb.set_trace()
-        
+
             if lw >= data_parameters["spread_thres"]:
                 if label not in spread_ndlb_dict[node]:
                     spread_ndlb_dict[node][label] = 1
@@ -511,7 +511,7 @@ def extractSubs(graph, nodes_to_labels, data_parameters):
     # for ego in [2]:
         for centert in data_parameters["centers"].split(";"):
             center = centert.strip()
-            
+
             if ego > 0 and center is not None and graph.has_key(center):
                 print "Filtering %s %d" % (center, ego)
                 ### GATHER THE EGO NET
@@ -548,14 +548,14 @@ def extractSubs(graph, nodes_to_labels, data_parameters):
 ################# SCORING
 def score(nb_edges, nb_nodes=None, new_edges=None):
     ### new_edges is not used in this score, only here for compatibility
-    if nb_nodes is None: ## in this case provided the actual edges and not just their number 
+    if nb_nodes is None: ## in this case provided the actual edges and not just their number
         nb_nodes = len(getNodeset(nb_edges))
     if nb_edges > 0:
         return nb_nodes/(2.0*nb_edges)
     return float("Inf")
 
 def score1(nb_edges, nb_nodes=None, new_edges=None):
-    if nb_nodes is None: ## in this case provided the actual edges and not just their number 
+    if nb_nodes is None: ## in this case provided the actual edges and not just their number
         nb_nodes = len(getNodeset(nb_edges))
     if type(nb_edges) is not int: ## if actual edges provided turn to number
         nb_edges = len(nb_edges)
@@ -674,7 +674,7 @@ def getSupport(stype, labelset, labels_to_nodes=None, labels_to_edges=None, node
 
 def getSizeLInter(node, labelset, nodes_to_labels):
     return len(nodes_to_labels.get(node, set()).intersection(labelset))
-    
+
 def improveSubgraph(graph, edgeset, covered, scoref=densityR, f=1):
     cdR = scoref(edgeset)
     odR = cdR
@@ -693,7 +693,7 @@ def improveSubgraph(graph, edgeset, covered, scoref=densityR, f=1):
             cdR = tdR
             nedges.update(eds)
             added.append(n)
-    #print "Improved with %d nodes from %f to %f" % (len(added), odR, cdR) 
+    #print "Improved with %d nodes from %f to %f" % (len(added), odR, cdR)
     return nedges, added
 
 ########################################################
@@ -716,14 +716,14 @@ def densestMaj(nodes_to_labels, labels_to_nodes, all_edges, assigned=None, sizes
         labelset.append(label)
         scores.append(sc)
         old_minC = minC
-        minC = (len(labelset)+3)/2 
+        minC = (len(labelset)+3)/2
         if debug_add is not None: ## DEBUG ##
             cN = sum([len(c) for c in distsN[old_minC:]])
             cE = len(coveredE)
             N, E = NandELabelMaj(labels_to_nodes[label], old_minC, distsN, onemissE)
             cnodes, cedges = getSupport("maj", labelset, nodes_to_labels=nodes_to_labels, all_edges=all_edges)
             if cN+N != len(cnodes) or cE+E != len(cedges):
-                print "TOP %s N:%d+%d=%d E:%d+%d=%d" % (labelset, cN, N, cN+N, cE, E, cE+E) 
+                print "TOP %s N:%d+%d=%d E:%d+%d=%d" % (labelset, cN, N, cN+N, cE, E, cE+E)
                 print "VS.", len(cnodes), len(cedges)
                 pdb.set_trace()
         distsN, onemissE, coveredE, uncoveredE = updateLabelMaj(labelset, labels_to_nodes, nodes_to_labels,
@@ -740,7 +740,7 @@ def updateLabelMaj(labelset, labels_to_nodes, nodes_to_labels, old_minC, minC, d
         up_distsN.append(distN.intersection(labels_to_nodes[labelset[-1]]))
 
     ### update list of edges with one label missing on either or both ends of the edge
-    ## minC = old_minC + 0 or 1 
+    ## minC = old_minC + 0 or 1
     if minC == old_minC:
         up_coveredE = list(coveredE)
         up_uncoveredE = []
@@ -771,7 +771,7 @@ def updateLabelMaj(labelset, labels_to_nodes, nodes_to_labels, old_minC, minC, d
         retest = uncoveredE + coveredE
         for cE in onemissE:
             retest.extend(cE)
-        
+
     for edge in retest:
         c0, c1 = getSizeLInter(edge[0], labelset, nodes_to_labels), getSizeLInter(edge[1], labelset, nodes_to_labels)
         if c0 < minC-1 or c1 < minC-1:
@@ -785,7 +785,7 @@ def updateLabelMaj(labelset, labels_to_nodes, nodes_to_labels, old_minC, minC, d
                 up_onemissE[0].append(edge)
         else:
             up_onemissE[1].append(edge)
-                
+
     return up_distsN, up_onemissE, up_coveredE, up_uncoveredE
 
 def bestLabelMaj(cand_labels, labels_to_nodes, minC, distsN, onemissE, coveredE, assigned=None, sizes=None, debug_add=None):
@@ -827,7 +827,7 @@ def NandELabelMaj(label_nsupp, minC, distsN, onemissE, assigned=None, sizes=None
         E += sum([v_0 in label_nsupp and v_1 in label_nsupp for (v_0, v_1) in onemissE[2] if sizes[assigned.get((v_0, v_1), None)] > N+cN])
     return N, E
 
-        
+
 ########################################################
 ################# MINING TOOLS
 
@@ -851,7 +851,7 @@ def parseClustersL(graph, nodes_to_labels, candidates, data_parameters, labelset
             suppsn.append(ndc)
             ncands.append(cand)
     candidates = ncands
-    
+
     cis = range(len(candidates))
     cis.sort(key= lambda x:(len(suppsn[x]),candidates[x]))
     covered = {}
@@ -891,7 +891,7 @@ def selectGreedy(graph, nodes_to_labels, candidates, data_parameters, fo=None, f
             else:
                 supps.pop(len(suppsn))
                 candidates.pop(len(suppsn))
-                
+
     else:     ### generate supports for candidates if not provided
         supps, suppsn, ncands = [], [], []
         while len(candidates) > 0:
@@ -903,7 +903,7 @@ def selectGreedy(graph, nodes_to_labels, candidates, data_parameters, fo=None, f
                 suppsn.append(ndc)
                 ncands.append(cand)
         candidates = ncands
-        
+
     ### start greedy selection
     cis = range(len(candidates))
     cis.sort(key= lambda x:(len(suppsn[x]),candidates[x]))

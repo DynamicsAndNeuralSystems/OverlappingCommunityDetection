@@ -1,6 +1,7 @@
 function [NMI] = NMI_calc(Input1, Input2)
 % Calculates the normalised value to calculate how similar two community
-% assignments are. 
+% assignments are.
+% **WARNING: NON-OVERLAPPING**
 % Brandon Lam, 15-07-2015
 
 numnodes = size(Input1, 1); % Calculates the number of nodes
@@ -22,14 +23,14 @@ IXY = 0; % Initialising the for loops
 % Calculating the IXY value
 for x = 1:size(N, 1)
     for y = 1:size(N, 2)
-        
+
         % P(x) = n(x)/n - First input
         Px = sum(N(x, :))/numnodes;
         % P(y) = n(y)/n - Second input
         Py = sum(N(:, y))/numnodes;
         % P(x,y) = n(x,y)/n - Overlap
         Pxy = N(x, y)/numnodes;
-        
+
         if Pxy ~= 0
             % I(X,Y) = P(x,y)*log(P(x,y)/(P(x)*P(y)))
             IXY = IXY + Pxy*log(Pxy/(Px*Py));
@@ -41,10 +42,10 @@ HX = 0; % Initialising the next for loop
 
 % Calculating the H(X) value
 for x = 1:size(N, 1)
-    
+
     % P(x) = n(x)/n - First input
     Px = sum(N(x, :))/numnodes;
-    
+
     if Px ~= 0
         % H(X) = -P(x)*log(P(x))
         HX = HX - Px*log(Px);
@@ -55,10 +56,10 @@ HY = 0; % Initialising the next for loop
 
 % Calculating the H(Y) value
 for y = 1:size(N, 2)
-    
+
     % P(y) = n(y)/n - First input
     Py = sum(N(:, y))/numnodes;
-    
+
     if Py ~= 0
         % H(Y) = -P(y)*log(P(y))
         HY = HY - Py*log(Py);

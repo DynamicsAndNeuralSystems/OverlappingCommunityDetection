@@ -1,9 +1,11 @@
-function [Output] = call_Gopalan(Undir, numnodes, maxIter, prec)
+function Output = call_Gopalan(Undir, numnodes, maxIter, prec)
 % Gopalan
 % Input is either undirected or directed list, but it will treat them as
 % undirected
 
-% Check for inputs
+%-------------------------------------------------------------------------------
+%% Check for inputs
+%-------------------------------------------------------------------------------
 if nargin < 3 || isempty(maxIter)
     maxIter = 1000; % Maximum iterations done within the algorithm
 end
@@ -33,3 +35,5 @@ Gopalan_final = Gopalan_final(:, sum(Gopalan_final, 1) ~= 0);
 % Puts the structural data in
 Output = struct('Name', 'Gopalan', 'Percent_removed', prec*100, ...
     'Max_Iterations', maxIter, 'Result', Gopalan_final);
+
+end

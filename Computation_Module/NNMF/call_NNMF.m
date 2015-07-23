@@ -8,8 +8,13 @@ end
 
 NNMF_final = run_NNMF(Mat, thresh); % Runs the NNMF method
 
+NNMF_final = NNMF_final{1}; % Gets rid of the cells
+
+% Gets rid of all communities that no longer exist due to thresholds
+NNMF_final = NNMF_final(:, sum(NNMF_final, 1) ~= 0);
+
 % This has no need for processing, as the output is the required matrix
 
     % Puts the structural data in
     Output = struct('Name', 'NNMF', 'Threshold', thresh, ...
-        'Result', NNMF_final{1});
+        'Result', NNMF_final);

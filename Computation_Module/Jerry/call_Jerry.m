@@ -12,8 +12,8 @@ if nargin < 5 || isempty(IsBlind)
     IsBlind = 1;
 end
 if nargin < 6 || isempty(ListeningRule)
-    ListeningRule = 'majority';
-    % ListeningRule = 'probabilistic';
+%     ListeningRule = 'majority';
+    ListeningRule = 'probabilistic';
 end
 
 % Runs the Jerry method

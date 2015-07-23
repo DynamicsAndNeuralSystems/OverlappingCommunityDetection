@@ -1,15 +1,23 @@
+function [Plot] = Visualisation(Methods)
+
 %% Visualiser code
 % Program that takes input from the computational module and outputs a
 % visualisation of the results
 % Brandon Lam, 07-07-2015
 
-clc; clear all; close all;
+% clc; clear all; close all;
 
 %% Parameters
-Width = 4; % Integers, defines width of each column
-fig_h = figure('color', 'w'); cmp = colormap(jet); % Put your favourite colour map here
-fig_h.Position = [174, 133, 1686, 986];
-Methods = {'Benchmark', 'OSLOM', 'Shen', 'Jerry'}; % Put your favourite methods here!
+Width = 6; % Integers, defines width of each column
+fig_h = figure('color', 'w'); 
+cmp = colormap(jet); % Put your favourite colour map here
+% fig_h.Position = [174, 133, 1686, 986];
+fig_h.Position = [1, 26, 1536, 703];
+
+if nargin < 1 || isempty(Methods)
+    Methods = {'Benchmark', 'Clauset', 'NNMF', 'Jerry'}; 
+    % Put your favourite methods here!
+end
 MethodName = cell(0); % Method names used
 
 
@@ -61,7 +69,12 @@ colorbar('location', 'eastoutside'); % Shows a colour bar
 for name = MethodName
     % Plots a starting line, so that algorithms can be separated
     plot([StartPos, StartPos], [0, numnodes + 1], 'k');
+    
+    % Temporary community matrix for each algorithm
     CommMat = Final.(name{1}).Result(I, :);
+    
+    % Reorders nodes to fit colours to largest to smallest
+    CommMat = Node_Reorder(CommMat);
     
     for y = 1:numnodes
         
@@ -97,4 +110,6 @@ for i = 1: size(MethodName, 2)
     XTickLabel = [XTickLabel, XTickLabel(end)+Width]; % Finds all the labels needed
 end
 set(gca, 'XTick', XTickLabel+Width/2); % Sets the axis ticks to these values
-set(gca, 'XTickLabel', MethodName, 'FontSize', 7); % Shows the labels, makes them smaller
+set(gca, 'XTickLabel', MethodName, 'FontSize', 5); % Shows the labels, makes them smaller
+
+set(gcf, 'InvertHardCopy', 'off'); % Fixes white background issue

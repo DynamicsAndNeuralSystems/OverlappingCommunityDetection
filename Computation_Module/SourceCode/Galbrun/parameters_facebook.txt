@@ -1,0 +1,12 @@
+results_rep ../xps/facebook/
+data_rep ../data/facebook/
+output +
+graph_file *.edges
+labels_file *.feat
+serie_suff A
+stop_frac 0.6
+min_frac 0
+min_supp 10
+ks 5, 10, 20, 30, 100
+logfile -
+verbosity 5

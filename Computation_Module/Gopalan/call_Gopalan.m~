@@ -20,15 +20,7 @@ run_Gopalan(Input, numnodes, maxIter);
 % Processes the data
 [Gopalan_final] = process_Gopalan(numnodes);
 
-% Replaces all homeless nodes with 0s
-for i = 1:numnodes
-    if isnan(sum(Gopalan_final(i, :)))
-        Gopalan_final(i, :) = 0;
-    end
-end
 
-% Removes all nodeless communities
-Gopalan_final = Gopalan_final(:, sum(Gopalan_final, 1) ~= 0);
 
 % Puts the structural data in
 Output = struct('Name', 'Gopalan', 'Percent_removed', prec*100, ...

@@ -41,7 +41,7 @@ if size(input, 1) == size(input, 2) % If matrix
     numnodes = size(Mat, 1); % Number of nodes
 
     DirList = Mat2Direct(Mat, numnodes); % Calls function to convert matrix to directed list
-    Undir = Direct2Undir(DirList); % Calls function to make undirected input
+    Undir = Mat2Undir(Mat); % Calls function to make undirected input
 
 elseif size(input, 3) % List format
     if sum(input(:, 1) > input(:, 2)) == 0 % If undirected
@@ -56,7 +56,7 @@ elseif size(input, 3) % List format
         numnodes = max(max(DirList(:, 1:2))); % Calculates the number of nodes in the system
 
         Mat = Direct2Matrix(DirList, numnodes); % Calls function to make matrix input
-        Undir = Direct2Undir(DirList); % Calls function to make undirected input
+        Undir = Mat2Undir(Mat); % Calls function to make undirected input
     end
 else
     error('Error: Input is not one of the accepted formats');

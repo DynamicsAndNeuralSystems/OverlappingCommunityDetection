@@ -9,11 +9,8 @@ if nargin < 4 || isempty(Tol)
     Tol = 0.5; % Range of tolerances
 end
 
-filepath = './Modules/Computation_Module/SourceCode/OSLOM'; % File path from module to OSLOM code
-fileback = '../../../../'; % File path back
-
 % Runs the algorithm for OSLOM
-run_OSLOM(Undir, numIter, Tol, filepath, fileback);
+run_OSLOM(Undir, numIter, Tol);
 
 % Processes the textfile outputs
 [OSLOM_final] = process_OSLOM(Tol, numnodes);

@@ -7,6 +7,11 @@ function [Plot] = Visualisation(Methods)
 
 % clc; clear all; close all;
 
+%% Loading data
+load('Computation_Result.mat');
+fprintf('Loading data created on %s!\n', Final.Date);
+numnodes = size(Final.Network, 1);
+
 %% Parameters
 Width = 6; % Integers, defines width of each column
 fig_h = figure('color', 'w');
@@ -15,16 +20,11 @@ cmp = colormap(jet); % Put your favourite colour map here
 fig_h.Position = [1, 26, 1536, 703];
 
 if nargin < 1 || isempty(Methods)
-    Methods = {'Benchmark', 'Clauset', 'NNMF', 'Jerry'};
-    % Put your favourite methods here!
+    temp = fieldnames(Final); % Getting names
+    temp = temp(3:end); % Gets rid of 'Date' and 'Network' - not needed
+    Methods = temp'; % Gathering methods
 end
 MethodName = cell(0); % Method names used
-
-
-%% Loading data
-load('Computation_Result.mat');
-fprintf('Loading data created on %s!\n', Final.Date);
-numnodes = size(Final.Network, 1);
 
 %% Benchmark sorting of nodes
 [I] = Node_Sorter(Final.Benchmark.Result); % Sorts the nodes into communities
@@ -39,11 +39,12 @@ StartPos = size(full_Matrix, 2) + 0.5; % Starting position of x position
 
 
 %% Finding the methods within Final
-for Vis_name = Methods
-    % Temporary data dump of names
-    temp = fieldnames(Final);
-    temp = temp(3:end); % Gets rid of 'Date' and 'Network' - not needed
 
+% Temporary data dump of names
+temp = fieldnames(Final);
+temp = temp(3:end); % Gets rid of 'Date' and 'Network' - not needed
+
+for Vis_name = Methods
     for i = 1:length(temp)
         if strcmp(Final.(temp{i}).Name, Vis_name{1}) % - If the names match
             % Add blank space for the plot

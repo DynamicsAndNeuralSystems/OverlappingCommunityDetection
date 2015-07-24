@@ -1,7 +1,7 @@
 function [] = run_OSLOM(Undir, numIters, Tol)
 
-filepath = './Modules/Computation_Module/SourceCode/OSLOM'; % File path from module to OSLOM code
-fileback = '../../../../'; % File path back
+filepath = './Computation_Module/SourceCode/OSLOM'; % File path from module to OSLOM code
+fileback = '../../../'; % File path back
 
 cd(filepath); % Goes into the pathway of the code
 

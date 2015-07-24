@@ -4,7 +4,7 @@ function [] = run_Gopalan(Undir, numnodes, maxIter)
 temp = Undir(:, 1:2); % Creates the matrix for the input
 
 % Goes into the directory required
-cd Modules/Computation_Module/SourceCode/Gopalan;
+cd Computation_Module/SourceCode/Gopalan;
 
 fid = fopen('Gopalan.txt', 'w'); % Creates text file
 fprintf(fid, '%g\t%g\n', temp'); % Places data within file
@@ -44,6 +44,6 @@ system(sprintf('mv %s/communities.txt ../../../../Gopalan.txt', foldername));
 system(sprintf('rm -rf %s', foldername));
 
 % Goes into the directory required
-cd ../../../../;
+cd ../../../;
 
 fprintf('\n'); % Aesthetic value.

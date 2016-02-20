@@ -1,8 +1,8 @@
-function [Output] = process_Benchmark(benchfilename, numnodes)
+function [Output] = process_Benchmark(benchFilename, numNodes)
 % Function that processes the community data of the benchmark
 
 % Reads the file
-fid = fopen([benchfilename '.dat'], 'r');
+fid = fopen([benchFilename '.dat'], 'r');
 temp = textscan(fid, '%d', 'Delimiter', {' ', '\n'});
 fclose(fid);
 
@@ -19,10 +19,12 @@ numComms = max(temp(logical(~zero_place.*~zero_place([end, 1:end-1]))));
 NodePlace = [find(zero_place([end, 1:end-1]) == 1); length(temp)+1];
 
 % Preallocating for the calculations
-Output = zeros(numnodes, numComms);
+Output = zeros(numNodes, numComms);
 
-for i = 1:numnodes
+for i = 1:numNodes
     % Places values in the right place
     Output(i, temp(NodePlace(i)+1:NodePlace(i+1)-2)) =...
         1/length(NodePlace(i)+1:NodePlace(i+1)-2);
+end
+
 end

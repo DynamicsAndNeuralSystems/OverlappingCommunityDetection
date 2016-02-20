@@ -15,7 +15,9 @@ function Final = Computation(input, Methods,isBenchmark, benchfilename)
 % Gopalan - gsl and gcc libraries need to be loaded
 % Link - requires python to be loaded
 
+%-------------------------------------------------------------------------------
 %% Check if inputs exist
+%-------------------------------------------------------------------------------
 if nargin < 1 || isempty(input)
     error('Error: Please input a matrix');
 end

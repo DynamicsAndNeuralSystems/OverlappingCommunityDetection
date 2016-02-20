@@ -14,7 +14,7 @@ if nargin < 4 || isempty(prec)
 end
 
 % Gets rid of all links weaker than the percentage of precision
-Input = Undir(Undir(:,3)>quantile(Undir(:,3),prec), :);
+Input = Undir(Undir(:,3) > quantile(Undir(:,3),prec), :);
 
 % Runs the Gopalan method
 run_Gopalan(Input, numnodes, maxIter);

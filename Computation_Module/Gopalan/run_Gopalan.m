@@ -38,7 +38,7 @@ system('rm Gopalan.txt'); % Deletes the network textfile (not needed any more)
 foldername = sprintf('n%g-k%g-Gopalan-linksampling', numnodes, numComms);
 
 % Moves the communities text file into the running directory
-system(sprintf('mv %s/communities.txt ../../../../Gopalan.txt', foldername));
+system(sprintf('mv %s/communities.txt ../../../Gopalan.txt', foldername));
 
 % Deletes the old folder
 system(sprintf('rm -rf %s', foldername));

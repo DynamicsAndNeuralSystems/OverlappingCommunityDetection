@@ -221,7 +221,7 @@ for i = 1:numGroups
     % plot([customOffset + i - offsetRange/2,customOffset + i + offsetRange/2],(nanmean(dataCell{i})+nanstd(dataCell{i}))*ones(2,1),'--',...
                             % 'color',brightColor,'LineWidth',2)
 end
-xticks([1 2 3 4 5 6 7 8 9 10 11 12 13]);
+xticks([1 2 3 4 5 6 7 8 9 10 11 12 13 14 15]);
 xticklabels(names);
 xtickangle(45);
 xlabel('Algorithms');

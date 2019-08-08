@@ -17,7 +17,7 @@ methods = methods(:,idx);
 [m,n] = size(methods);
 methods = mat2cell(methods,m,ones(n,1));
 
-names = {'OSLOM\_50','Clique\_3','Clique\_4','Clique\_5','Clique\_6','Clique\_7','Clique\_9','NNMF\_10','NNMF\_20','NNMF\_30','NNMF\_40','Infomap','SLPA'};
+names = {'OSLOM\_30','OSLOM\_90','OSLOM\_50','Clique\_3','Clique\_4','Clique\_5','Clique\_6','Clique\_7','Clique\_9','NNMF\_10','NNMF\_20','NNMF\_30','NNMF\_40','Infomap','SLPA'};
 names = names(idx);
 
 

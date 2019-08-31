@@ -19,11 +19,13 @@ Plot = imagesc(full_Matrix); hold on
 axis('image');
 set(gca, 'color', [0 0 0], 'CLim', [0 1]); % Sets background colour to black
 set(Plot, 'alphadata',~isnan(full_Matrix)); % Turns all NaN values into transparent colours
-colorbar('location', 'eastoutside'); % Shows a colour bar
+c = colorbar('location', 'eastoutside'); % Shows a colour bar
 %% Labelling
 title('A','FontSize', 15);
 XTickLabel = size(full_Matrix, 1)+0.5; % Kickstarts the for loop
 set(gcf, 'InvertHardCopy', 'off'); % Fixes white background issue
+c.Label.String = "Edge Weight";
+c.Label.FontSize = 10;
 
 xlabel('Region')
 ylabel('Region')

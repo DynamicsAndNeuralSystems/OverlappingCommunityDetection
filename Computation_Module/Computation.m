@@ -38,26 +38,26 @@ end
 %% Converting the input into all the formats
 %-------------------------------------------------------------------------------
 
-if size(input, 1) == size(input, 2) % If matrix
+if size(input,1) == size(input,2) % If matrix
     Mat = input;
-    numnodes = size(Mat, 1); % Number of nodes
+    numNodes = size(Mat,1); % Number of nodes
 
-    DirList = Mat2Direct(Mat, numnodes); % Calls function to convert matrix to directed list
+    DirList = Mat2Direct(Mat,numNodes); % Calls function to convert matrix to directed list
     Undir = Mat2Undir(Mat); % Calls function to make undirected input
 
-elseif size(input, 3) % List format
-    if sum(input(:, 1) > input(:, 2)) == 0 % If undirected
+elseif size(input,3) % List format
+    if sum(input(:,1) > input(:,2)) == 0 % If undirected
         Undir = input;
-        numnodes = max(max(Undir(:, 1:2))); % Calculates the number of nodes in the system
+        numNodes = max(max(Undir(:,1:2))); % Calculates the number of nodes in the system
 
         DirList = Undir2Direct(Undir); % Converts undirected to directed list
-        Mat = Direct2Matrix(DirList, numnodes); % Calls function to make matrix input
+        Mat = Direct2Matrix(DirList,numNodes); % Calls function to make matrix input
     else % If directed
 
         DirList = input;
-        numnodes = max(max(DirList(:, 1:2))); % Calculates the number of nodes in the system
+        numNodes = max(max(DirList(:,1:2))); % Calculates the number of nodes in the system
 
-        Mat = Direct2Matrix(DirList, numnodes); % Calls function to make matrix input
+        Mat = Direct2Matrix(DirList,numNodes); % Calls function to make matrix input
         Undir = Mat2Undir(Mat); % Calls function to make undirected input
     end
 else
@@ -65,9 +65,9 @@ else
 end
 
 % So now we have 3 representations of the same object:
- % Mat: adjacency matrix (full)
- % DirList: list of edges
- % Undir: **NOT YET** undirected transformation of matrix (either edge exists counted as link)
+% Mat: adjacency matrix (full)
+% DirList: list of edges
+% Undir: **NOT YET** undirected transformation of matrix (either edge exists counted as link)
 
 %-------------------------------------------------------------------------------
 %% Creating the final structure
@@ -80,28 +80,28 @@ Final.Network = Mat; % Saves the matrix of the network
 %% Benchmark
 if isBenchmark
     % Processes the data from the benchmark
-    [BenchComm] = process_Benchmark(benchfilename, numnodes);
+    [BenchComm] = process_Benchmark(benchfilename,numNodes);
 
     % Places it in the final structure data
-    Final.Benchmark = struct('Name', 'Benchmark', 'Result', BenchComm);
+    Final.Benchmark = struct('Name','Benchmark','Result',BenchComm);
 end
 
 %% Running Functions
 for name = Methods
     switch name{1}
         case 'Clauset'
-            Final.Clauset = call_Clauset(DirList, numnodes);
+            Final.Clauset = call_Clauset(DirList, numNodes);
         case 'Gopalan'
             for prec = [0 0.1 0.2 0.3]
                 Final.(sprintf('Gopalan_prec_%g', prec*100)) = ...
-                    call_Gopalan(Undir, numnodes, 1000, prec);
+                    call_Gopalan(Undir, numNodes, 1000, prec);
             end
         case 'Jerry'
-            Final.Jerry = call_Jerry(Mat, numnodes, 120, 0.09, 1, 'probabilistic');
+            Final.Jerry = call_Jerry(Mat, numNodes, 120, 0.09, 1, 'probabilistic');
         case 'Link'
             for prec = [0 0.01 0.1]
                 Final.(sprintf('Link_prec_%g', prec*100)) = ...
-                    call_Link(Undir, numnodes, prec);
+                    call_Link(Undir, numNodes, prec);
             end
         case 'NNMF'
             for thresh = [0 0.01 0.1]
@@ -111,10 +111,10 @@ for name = Methods
         case 'OSLOM'
             for tol = 0.1:0.1:1
                 Final.(sprintf('OSLOM_thresh_%g', tol*100)) = ...
-                    call_OSLOM(Undir, numnodes, 100, tol);
+                    call_OSLOM(Undir, numNodes, 100, tol);
             end
         case 'Shen'
-            Final.Shen = call_Shen(Mat, numnodes, 7, 1.3, 0);
+            Final.Shen = call_Shen(Mat, numNodes, 7, 1.3, 0);
     end
 end
 

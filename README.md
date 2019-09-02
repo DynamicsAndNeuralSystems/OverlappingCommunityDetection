@@ -1,11 +1,10 @@
-# Community detection & visualisation software
-Brandon Lam, 24-07-2015
+# Empirical comparison of overlapping community detection algorithms
 
 These modules are separated into the computation and visualisation modules, where computation does all the calculations, and visualisation allows you to view the results and compare them.
 
-## Computation Module Information ##
+## Computation Module Information
 
-### Usage/Syntax: ###
+### Usage/Syntax:
 
 ```
 Final = Computation(Input, Methods, isBenchmark, benchfilename)
@@ -21,8 +20,7 @@ Where:
 
 This function also saves the Final structure as a file called `Computation_Result.mat`. This file will be accessed by the Visualisation code.
 
-### File structure ###
-
+### File structure
 
 These files are organised as such:
 

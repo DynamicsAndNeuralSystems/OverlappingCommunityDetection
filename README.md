@@ -7,16 +7,16 @@ These modules are separated into the computation and visualisation modules, wher
 ### Usage/Syntax:
 
 ```
-Final = Computation(Input, Methods, isBenchmark, benchfilename)
+Final = Computation(Input, Methods, isBenchmark, benchFileName)
 ```
 
 Where:
 
-* Final -	The outputted structure, which contains all data from the algorithms (Method name, community result)
-* Input -	Can be an adjacency matrix, matrix list of undirected links, or matrix list of directed links
-* Methods -	Cells of the names of methods to be computed. *Default is Jerry and Shen methods*
-* isBenchmark -	0 for no benchmark, 1 for benchmark. *Default is 0*
-* benchfilename - String name of the text file within which the benchmark communities are defined
+* `Final` -	The outputted structure, which contains all data from the algorithms (Method name, community result)
+* `Input` -	Can be an adjacency matrix, matrix list of undirected links, or matrix list of directed links
+* `Methods` -	Cells of the names of methods to be computed. *Default is Jerry and Shen methods*
+* `isBenchmark` -	0 for no benchmark, 1 for benchmark. *Default is 0*
+* `benchFileName` - String name of the text file within which the benchmark communities are defined
 
 This function also saves the Final structure as a file called `Computation_Result.mat`. This file will be accessed by the Visualisation code.
 

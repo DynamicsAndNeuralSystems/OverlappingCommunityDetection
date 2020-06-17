@@ -1,9 +1,7 @@
 %load benchmark network data
-cd ../../
 load('Computation_Module/Conversions/networks/network56.dat')
 
 %Run OCDAs on benchmark
-cd ../../
 Computation(network56, {'OSLOM','Jerry','Shen','NNMF','Infomap'}, 1, 'networks/community56')
 
 %Visualise performance

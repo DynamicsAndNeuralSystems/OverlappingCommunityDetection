@@ -1,12 +1,14 @@
 # Empirical comparison of overlapping community detection algorithms
 
-These modules are separated into the computation and visualisation modules, where computation does all the calculations, and visualisation allows you to view the results and compare them.
+These modules are separated into the computation and visualization modules, where computation does all the calculations, and visualization allows you to view the results and compare them.
 
-## Computation Module Information
+## Computation Module
 
 ### Usage/Syntax:
 
-```
+The `Computation` function computes the community detection algorithms on a given network, as:
+
+```matlab
 Final = Computation(Input, Methods, isBenchmark, benchFileName)
 ```
 
@@ -18,29 +20,21 @@ Where:
 * `isBenchmark` -	0 for no benchmark, 1 for benchmark. *Default is 0*
 * `benchFileName` - String name of the text file within which the benchmark communities are defined
 
-This function also saves the Final structure as a file called `Computation_Result.mat`. This file will be accessed by the Visualisation code.
+Results are saved to `Computation_Result.mat`, which can be visualized using code in the Visualization module.
 
-### File structure
+### Structure
 
-These files are organised as such:
-
-Within the `Computation_Module`, there are many directories.
-Most of these are names of methods currently implemented.
-Within these directories, there are 3 files -
+Each community detection method has its own directory within the `Computation_Module` directory.
+Each directory, `MethodName`, contains 3 files -
 
 * `call_[MethodName]` - This function is called by the overarching `computation.m` function. It simplifies the entire process down to one line.
 * `run_[MethodName]` - This function is called to do the actual calculations; running the algorithm and spitting out its output (Note: If calculations need to be hard coded to specific directories, this is done within this `.m` file. For examples, view `run_Gopalan`).
 * `process_[MethodName]` - Called after running the algorithm, as this function will take the algorithm output and convert it to the universal matrix format, explained below.
 
-Apart from these directories, there are two others called `Conversions` and `SourceCode`.
+In addition, source code for each algorithm is in a directory in the `SourceCode` directory.
+And scripts for converting between the three types of inputs are in `Conversions`.
 
-* `Conversions` is a directory that holds the `.m` files that convert any of the 3 types of inputs into other types. This directory should not be changed, unless there is a different type of input that is not adjacency matrix, undirected list or directed list.
-* `SourceCode` is the directory where all the algorithms are stored within their own folder.
-
-Finally, the main overarching function, `Computation`.
-This function is the one to call (as seen above) when the computation of algorithms is needed.
-
-### Algorithm Output ###
+### Algorithm Output
 
 After the `process_[Method]` function is run, the output should be in a matrix format, where each row is a node, and each column is a community.
 
@@ -70,12 +64,12 @@ If you wish to add a module, here is how to do so:
 6. Congratulations, assuming it gives an output, your method is now implemented!
 
 
-## Visualisation Module Information ##
+## Visualization Module
 
-### Usage/Syntax: ###
+### Usage/Syntax:
 
 ```
-Visualisation(Methods)
+Visualization(Methods)
 ```
 
 Where:
@@ -84,11 +78,11 @@ Where:
   If benchmark exists, and you want to visualise it as well, the name 'Benchmark' needs to be within this cell list.
   *If no Methods are supplied, then the default is everything within the results of the Computation module*
 
-### File Structure ###
+### File Structure
 
-Within the `Visualisation_Module` directory, there are only `.m` files.
+Within the `Visualization_Module` directory, there are only `.m` files.
 
-* `Visualisation` - This function is the overarching code that plots the network, as well as communities to compare their results.
+* `Visualization` - This function is the overarching code that plots the network, as well as communities to compare their results.
 * `Node_Reorder` - This moves the labeling of communities to the largest being number 1.
   This allows for a somewhat easier view of the communities, as the colours within the visualiser depend on the labels.
 * `Node_Sorter` - This reorders the nodes according to the benchmark (so that communities are easier to see).

@@ -6,7 +6,7 @@ These modules are separated into the computation and visualization modules, wher
 
 ### Usage/Syntax:
 
-The `Computation` function computes the community detection algorithms on a given network, as:
+`Computation` computes a range of community-detection algorithms on a given network, as:
 
 ```matlab
 Final = Computation(Input, Methods, isBenchmark, benchFileName)
@@ -38,18 +38,6 @@ And scripts for converting between the three types of inputs are in `Conversions
 
 After the `process_[Method]` function is run, the output should be in a matrix format, where each row is a node, and each column is a community.
 
-![](http://i.imgur.com/LP5r46R.png?1)
-
-In the above example:
-
-* Node 1 is in community 3
-* Node 2 is in community 1
-* Node 3 is in both communities 1 and 3
-* Node 4 is in all three communities
-* Node 5 is homeless (not linked to any communities)
-
-Nodes can also be more strongly linked to a community, but the sum of numbers for each node must be 1.
-
 ### Adding a new method
 
 If you wish to add a module, here is how to do so:
@@ -57,11 +45,11 @@ If you wish to add a module, here is how to do so:
 1. Place source code of the algorithm within its own named directory inside  the `Computation_Module/SourceCode` directory.
 2. Code `run_[Method]` - This should take the network (in whatever format that is needed) and parameters, and output a final community result.
    This output does not have to be in the matrix format, the processing function should do that.
-3. Code `process_[Method]` - This will take the output of the previous step as an input, and then output the matrix format for the visualiser.
+3. Code `process_[Method]` - This will take the output of the previous step as an input, and then output the matrix format for the visualizer.
 4. Code `call_[Method]` - This is essentially a function that calls both the previous two functions, and therefore can be called in one line.
 5. Add the function created in step 4 into `Computation`, in the switch case at the later half of the code. Look to the other methods coded for structure.
    This can also be altered to loop multiple times for different variables.
-6. Congratulations, assuming it gives an output, your method is now implemented!
+6. Congratulations, if it gives an output then your method has been incorporated successfully!
 
 
 ## Visualization Module
@@ -74,26 +62,20 @@ Visualization(Methods)
 
 Where:
 
-* Methods - Cell list of methods to be visualised.
-  If benchmark exists, and you want to visualise it as well, the name 'Benchmark' needs to be within this cell list.
+* Methods - Cell list of methods to be visualized.
+  If benchmark exists, and you want to visualize it as well, the name 'Benchmark' needs to be within this cell list.
   *If no Methods are supplied, then the default is everything within the results of the Computation module*
 
 ### File Structure
-
-Within the `Visualization_Module` directory, there are only `.m` files.
 
 * `Visualization` - This function is the overarching code that plots the network, as well as communities to compare their results.
 * `Node_Reorder` - This moves the labeling of communities to the largest being number 1.
   This allows for a somewhat easier view of the communities, as the colours within the visualiser depend on the labels.
 * `Node_Sorter` - This reorders the nodes according to the benchmark (so that communities are easier to see).
 
-Unused code (So far)
+Unused code (so far)
 
 * `NMI_calc` - Given two community results, will spit out a number between 0 and 1 (NMI calculation).
   Does not work with overlapping communities.
 * `ENMI_calc` & `extendNMI_calcs` are functions for calculating the NMI for overlapping communities.
   To use, just input the two community matrices into `ENMI_calc`
-
-### Adding a new method
-
-Because of the fact that the visualiser runs off the output of the computation module, nothing new needs to be added into this code!

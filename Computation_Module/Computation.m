@@ -1,22 +1,20 @@
-function Final = Computation(input, Methods,isBenchmark, benchfilename)
-% Program that computes algorithms for a specific network
+function Final = Computation(input, Methods, isBenchmark, benchmarkFileName)
+% Computes a set of community-detection algorithms for a specific network
 %
-% INPUTS:
+%---INPUTS:
 % input: adjacency matrix (or list of links in format ''node1, node2, weight'' as matrix)
 % Methods: cell of names of methods to be tested
-% isBenchmark: 1 for benchmark (otherwise 0)
-% benchfilename: name of text file containing benchmark data
-% Brandon Lam, 29-06-2015
-
-%% IMPORTANT
+% isBenchmark: true for benchmark
+% benchmarkFileName: name of a text file containing benchmark data
+% 
+%%---IMPORTANT NOTE:
 % Before running this program, there are a few libraries that need to be
-% loaded
-
-% Gopalan - gsl and gcc libraries need to be loaded
-% Link - requires python to be loaded
+% loaded:
+%   Gopalan - gsl and gcc libraries need to be loaded
+%   Link - requires python to be loaded
 
 %-------------------------------------------------------------------------------
-%% Check if inputs exist
+%% Check inputs
 %-------------------------------------------------------------------------------
 if nargin < 1 || isempty(input)
     error('Error: Please input a matrix');
@@ -30,7 +28,7 @@ if nargin < 3 || isempty(isBenchmark)
     isBenchmark = 0; % input is real data
 end
 
-if isBenchmark == 1 && isempty(benchfilename)
+if isBenchmark == 1 && isempty(benchmarkFileName)
     error('Error: Please input filename of benchmark community file');
 end
 
@@ -80,7 +78,7 @@ Final.Network = Mat; % Saves the matrix of the network
 %% Benchmark
 if isBenchmark
     % Processes the data from the benchmark
-    [BenchComm] = process_Benchmark(benchfilename,numNodes);
+    [BenchComm] = process_Benchmark(benchmarkFileName,numNodes);
 
     % Places it in the final structure data
     Final.Benchmark = struct('Name','Benchmark','Result',BenchComm);

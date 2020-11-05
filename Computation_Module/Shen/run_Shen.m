@@ -1,7 +1,8 @@
-function [Output] = run_Shen(Mat, cSize, cwThresh, lThresh)
-% Nothing much to do here, just point to the shen method to run
+function Output = run_Shen(Mat, cSize, cwThresh, lThresh)
+% Point to the shen method to run
+%-------------------------------------------------------------------------------
 
 % Runs the method
- [Output] = runShenCode(Mat, cSize, cwThresh, lThresh);
+ Output = runShenCode(Mat, cSize, cwThresh, lThresh);
  
 end

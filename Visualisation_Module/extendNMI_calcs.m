@@ -1,9 +1,10 @@
-function [Hnormalised] = extendNMI_calcs(Comm1, Comm2, numnodes)
+function Hnormalised = extendNMI_calcs(Comm1, Comm2, numNodes)
 % This function calculates the H(boldX|boldY) normalised from the two
 % inputs. This constitutes just under half of the calculations of the
 % extended NMI.
 % lower Hnormalised means better fit
 % Brandon Lam, 16-07-2015
+%-------------------------------------------------------------------------------
 
 % H(boldX|boldY)
 HXXYY = 0; % Initialising for loop
@@ -14,12 +15,12 @@ for k = 1:size(Comm1, 2)
     HXkYY = 10000; % Number to initiate the for loop, we want the smallest one possible
     for l = 1:size(Comm2, 2)
 
-        PXk1Yl1 = sum((Comm1(:, k) + Comm2(:, l)) == 2)/numnodes; % P(Xk = 1, Yl = 1)
-        PXk1Yl0 = sum(Comm1(:, k))/numnodes - PXk1Yl1; % P(Xk = 1, Yl = 0)
-        PXk0Yl1 = sum(Comm2(:, l))/numnodes - PXk1Yl1; % P(Xk = 0, Yl = 1)
+        PXk1Yl1 = sum((Comm1(:, k) + Comm2(:, l)) == 2)/numNodes; % P(Xk = 1, Yl = 1)
+        PXk1Yl0 = sum(Comm1(:, k))/numNodes - PXk1Yl1; % P(Xk = 1, Yl = 0)
+        PXk0Yl1 = sum(Comm2(:, l))/numNodes - PXk1Yl1; % P(Xk = 0, Yl = 1)
         PXk0Yl0 = 1 - (PXk0Yl1 + PXk1Yl0 + PXk1Yl1); % P(Xk = 0, Yl = 0)
 
-        PYl1 = sum(Comm2(:, l))/numnodes; % P(Yl = 1)
+        PYl1 = sum(Comm2(:, l))/numNodes; % P(Yl = 1)
         PYl0 = 1 - PYl1; % P(Yl = 0)
 
         % Constraint values - need them to COMPare against each other
@@ -69,7 +70,7 @@ for k = 1:size(Comm1, 2)
         end
     end
 
-    PXk1 = sum(Comm1(:, k))/numnodes; % P(Xk = 1)
+    PXk1 = sum(Comm1(:, k))/numNodes; % P(Xk = 1)
     PXk0 = 1 - PXk1; % P(Xk = 0)
 
     %% HXk calc and NaN fixing

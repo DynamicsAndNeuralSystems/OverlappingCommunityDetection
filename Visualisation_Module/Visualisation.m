@@ -1,33 +1,28 @@
-function [Plot] = Visualisation(Methods)
-%% Visualiser code
-% Program that takes input from the computational module and outputs a
-% visualisation of the results
+function Plot = Visualisation(Methods)
+% Visualises results of the Computation Module
 % Assumes Computation_Result.mat exists in the Matlab path
-% Brandon Lam, 07-07-2015
-
-% clc; clear all; close all;
-
-%% Loading data
-load('Computation_Result.mat');
-fprintf('Loading data created on %s!\n', Final.Date);
-numnodes = size(Final.Network, 1);
-
-%% Parameters
-Width = 6; % Integers, defines width of each column
-fig_h = figure('color', 'w');
-cmp = colormap(jet); % Put your favourite colour map here
-% fig_h.Position = [174, 133, 1686, 986];
-fig_h.Position = [1, 26, 1536, 703];
+%-------------------------------------------------------------------------------
 
 if nargin < 1 || isempty(Methods)
     temp = fieldnames(Final); % Getting names
     temp = temp(3:end); % Gets rid of 'Date' and 'Network' - not needed
     Methods = temp'; % Gathering methods
 end
-MethodName = cell(0); % Method names used
+methodNames = cell(0); % Method names used
+
+%% Load data
+load('Computation_Result.mat');
+fprintf('Loading data created on %s!\n', Final.Date);
+numNodes = size(Final.Network, 1);
+
+%% Set parameters
+Width = 6; % Integers, defines width of each column
+fig_h = figure('color', 'w');
+cmp = colormap(jet); % Put your favourite colour map here
+fig_h.Position = [1, 26, 1536, 703];
 
 %% Benchmark sorting of nodes
-[I] = Node_Sorter(Final.Benchmark.Result); % Sorts the nodes into communities
+I = Node_Sorter(Final.Benchmark.Result); % Sorts the nodes into communities
 disp('Nodes have been sorted into communities');
 
 %% Initial matrix view
@@ -51,7 +46,7 @@ for Vis_name = Methods
             full_Matrix = [full_Matrix NaN(size(full_Matrix, 1), Width)];
             % Saves the full name of the method within the "Final"
             % structure
-            MethodName{end+1} = temp{i};
+            methodNames{end+1} = temp{i};
         end
     end
 end
@@ -66,9 +61,9 @@ colorbar('location', 'eastoutside'); % Shows a colour bar
 
 
 %% Plotting rectangles and lines
-for name = MethodName
+for name = methodNames
     % Plots a starting line, so that algorithms can be separated
-    plot([StartPos, StartPos], [0, numnodes + 1], 'k');
+    plot([StartPos, StartPos], [0, numNodes + 1], 'k');
 
     % Temporary community matrix for each algorithm
     CommMat = Final.(name{1}).Result(I, :);
@@ -76,7 +71,7 @@ for name = MethodName
     % Reorders nodes to fit colours to largest to smallest
     CommMat = Node_Reorder(CommMat);
 
-    for y = 1:numnodes
+    for y = 1:numNodes
 
         tempPos = StartPos; % Resets the temporary position
 
@@ -106,11 +101,11 @@ end
 
 %% Labelling
 XTickLabel = size(full_Matrix, 1)+0.5; % Kickstarts the for loop
-for i = 1: size(MethodName, 2)
+for i = 1: size(methodNames, 2)
     XTickLabel = [XTickLabel, XTickLabel(end)+Width]; % Finds all the labels needed
 end
 set(gca, 'XTick', XTickLabel+Width/2); % Sets the axis ticks to these values
-set(gca, 'XTickLabel', MethodName, 'FontSize', 5); % Shows the labels, makes them smaller
+set(gca, 'XTickLabel', methodNames, 'FontSize', 5); % Shows the labels, makes them smaller
 
 set(gcf, 'InvertHardCopy', 'off'); % Fixes white background issue
 

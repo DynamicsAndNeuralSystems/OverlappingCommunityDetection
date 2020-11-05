@@ -1,16 +1,17 @@
-function [NMI] = NMI_calc(Input1, Input2)
-% Calculates the normalised value to calculate how similar two community
-% assignments are.
-% **WARNING: NON-OVERLAPPING**
-% Brandon Lam, 15-07-2015
+function NMI = NMI_calc(Input1, Input2)
+% Calculates the normalized similarity of two community assignments.
+% **[NON-OVERLAPPING]**
+%-------------------------------------------------------------------------------
 
-numnodes = size(Input1, 1); % Calculates the number of nodes
+numNodes = size(Input1, 1); % Calculates the number of nodes
 
-Comm1 = Input1 ~= 0; % Binary Input
-Comm2 = Input2 ~= 0; % Binary Input
-N = zeros(size(Comm1, 2), size(Comm2, 2));
+% Binarize:
+Comm1 = (Input1 ~= 0);
+Comm2 = (Input2 ~= 0);
 
-for i = 1:numnodes;
+N = zeros(size(Comm1,2),size(Comm2,2));
+
+for i = 1:numNodes
     % Creates the confusion matrix, where each row is a community of the
     % first input, and every column is the community of the second input.
     % each value is the number of nodes the input classifies as in that
@@ -21,15 +22,15 @@ end
 IXY = 0; % Initialising the for loops
 
 % Calculating the IXY value
-for x = 1:size(N, 1)
-    for y = 1:size(N, 2)
+for x = 1:size(N,1)
+    for y = 1:size(N,2)
 
         % P(x) = n(x)/n - First input
-        Px = sum(N(x, :))/numnodes;
+        Px = sum(N(x,:))/numNodes;
         % P(y) = n(y)/n - Second input
-        Py = sum(N(:, y))/numnodes;
+        Py = sum(N(:,y))/numNodes;
         % P(x,y) = n(x,y)/n - Overlap
-        Pxy = N(x, y)/numnodes;
+        Pxy = N(x,y)/numNodes;
 
         if Pxy ~= 0
             % I(X,Y) = P(x,y)*log(P(x,y)/(P(x)*P(y)))
@@ -38,13 +39,13 @@ for x = 1:size(N, 1)
     end
 end
 
-HX = 0; % Initialising the next for loop
+HX = 0; % Initializing the next for loop
 
-% Calculating the H(X) value
+% Calculating H(X)
 for x = 1:size(N, 1)
 
     % P(x) = n(x)/n - First input
-    Px = sum(N(x, :))/numnodes;
+    Px = sum(N(x,:))/numNodes;
 
     if Px ~= 0
         % H(X) = -P(x)*log(P(x))
@@ -58,7 +59,7 @@ HY = 0; % Initialising the next for loop
 for y = 1:size(N, 2)
 
     % P(y) = n(y)/n - First input
-    Py = sum(N(:, y))/numnodes;
+    Py = sum(N(:, y))/numNodes;
 
     if Py ~= 0
         % H(Y) = -P(y)*log(P(y))
@@ -71,4 +72,6 @@ if (HX + HY) ~= 0
     NMI = 2*IXY/(HX + HY);
 else
     NMI = 0;
+end
+
 end

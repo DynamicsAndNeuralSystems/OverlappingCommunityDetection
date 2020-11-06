@@ -1,11 +1,11 @@
-function Final = Computation(input, Methods, isBenchmark, benchmarkFileName)
-% Computes a set of community-detection algorithms for a specific network
+function Final = Computation(adjMatrix, methodList, isBenchmark, benchmarkFileName)
+% Computes a set of (overlapping) community-detection algorithms for a given input network
 %
 %---INPUTS:
 % input: adjacency matrix (or list of links in format ''node1, node2, weight'' as matrix)
-% Methods: cell of names of methods to be tested
-% isBenchmark: true for benchmark
-% benchmarkFileName: name of a text file containing benchmark data
+% methodList: cell of strings labeling the methods to be evaluated
+% isBenchmark: set true for a benchmark network
+% benchmarkFileName: name of a text file containing benchmark node annotations
 % 
 %%---IMPORTANT NOTE:
 % Before running this program, there are a few libraries that need to be
@@ -16,16 +16,16 @@ function Final = Computation(input, Methods, isBenchmark, benchmarkFileName)
 %-------------------------------------------------------------------------------
 %% Check inputs
 %-------------------------------------------------------------------------------
-if nargin < 1 || isempty(input)
+if nargin < 1 || isempty(adjMatrix)
     error('Error: Please input a matrix');
 end
 
-if nargin < 2 || isempty(Methods)
-    Methods = {'Jerry', 'Shen'};
+if nargin < 2 || isempty(methodList)
+    methodList = {'Jerry', 'Shen'};
 end
 
 if nargin < 3 || isempty(isBenchmark)
-    isBenchmark = 0; % input is real data
+    isBenchmark = false; % input is real data
 end
 
 if isBenchmark == 1 && isempty(benchmarkFileName)
@@ -36,30 +36,30 @@ end
 %% Converting the input into all the formats
 %-------------------------------------------------------------------------------
 
-if size(input,1) == size(input,2) % If matrix
-    Mat = input;
+if size(adjMatrix,1) == size(adjMatrix,2) % matrix
+    Mat = adjMatrix;
     numNodes = size(Mat,1); % Number of nodes
 
     DirList = Mat2Direct(Mat,numNodes); % Calls function to convert matrix to directed list
-    Undir = Mat2Undir(Mat); % Calls function to make undirected input
+    Undir = Mat2Undir(Mat); % Calls function to make undirected adjMatrix
 
-elseif size(input,3) % List format
-    if sum(input(:,1) > input(:,2)) == 0 % If undirected
-        Undir = input;
+elseif size(adjMatrix,3) % List format
+    if sum(adjMatrix(:,1) > adjMatrix(:,2)) == 0 % (undirected)
+        Undir = adjMatrix;
         numNodes = max(max(Undir(:,1:2))); % Calculates the number of nodes in the system
 
         DirList = Undir2Direct(Undir); % Converts undirected to directed list
-        Mat = Direct2Matrix(DirList,numNodes); % Calls function to make matrix input
+        Mat = Direct2Matrix(DirList,numNodes); % Calls function to make matrix adjMatrix
     else % If directed
 
-        DirList = input;
+        DirList = adjMatrix;
         numNodes = max(max(DirList(:,1:2))); % Calculates the number of nodes in the system
 
         Mat = Direct2Matrix(DirList,numNodes); % Calls function to make matrix input
         Undir = Mat2Undir(Mat); % Calls function to make undirected input
     end
 else
-    error('Error: Input is not one of the accepted formats');
+    error('Error: Input adjacency matrix is not one of the accepted formats');
 end
 
 % So now we have 3 representations of the same object:
@@ -78,15 +78,18 @@ Final.Network = Mat; % Saves the matrix of the network
 %% Benchmark
 if isBenchmark
     % Processes the data from the benchmark
-    [BenchComm] = process_Benchmark(benchmarkFileName,numNodes);
+    BenchComm = process_Benchmark(benchmarkFileName,numNodes);
 
     % Places it in the final structure data
     Final.Benchmark = struct('Name','Benchmark','Result',BenchComm);
 end
 
 %% Running Functions
-for name = Methods
-    switch name{1}
+numMethods = length(methodList);
+fprintf(1,'Looping across %u OCDA methods\n',numMethods);
+for m = 1:numMethods
+    theMethod = methodList{m};
+    switch theMethod
         case 'Clauset'
             Final.Clauset = call_Clauset(DirList, numNodes);
         case 'Gopalan'
@@ -97,12 +100,12 @@ for name = Methods
         case 'Jerry'
             Final.Jerry = call_Jerry(Mat, numNodes, 120, 0.09, 1, 'probabilistic');
         case 'Link'
-            for prec = [0 0.01 0.1]
+            for prec = [0,0.01,0.1]
                 Final.(sprintf('Link_prec_%g', prec*100)) = ...
                     call_Link(Undir, numNodes, prec);
             end
         case 'NNMF'
-            for thresh = [0 0.01 0.1]
+            for thresh = [0,0.01,0.1]
                 Final.(sprintf('NNMF_thresh_%g', thresh*100)) = ...
                     call_NNMF(Mat, thresh);
             end
@@ -119,7 +122,6 @@ end
 %% Saving data
 fileName = 'Computation_Result.mat';
 save(fileName, 'Final');
-
 fprintf('All computation is complete! Saved as %s\n',fileName);
 
 end

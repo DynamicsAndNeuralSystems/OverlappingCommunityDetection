@@ -2,7 +2,7 @@
 
 These modules are separated into the computation and visualization modules, where computation does all the calculations, and visualization allows you to view the results and compare them.
 
-## Computation Module
+## Computation
 
 ### Usage/Syntax:
 
@@ -47,12 +47,12 @@ If you wish to add a module, here is how to do so:
    This output does not have to be in the matrix format, the processing function should do that.
 3. Code `process_[Method]` - This will take the output of the previous step as an input, and then output the matrix format for the visualizer.
 4. Code `call_[Method]` - This is essentially a function that calls both the previous two functions, and therefore can be called in one line.
-5. Add the function created in step 4 into `Computation`, in the switch case at the later half of the code. Look to the other methods coded for structure.
+5. Add the function created in Step 4 into `Computation`, in the switch case at the later half of the code. Look to the other methods coded for structure.
    This can also be altered to loop multiple times for different variables.
 6. Congratulations, if it gives an output then your method has been incorporated successfully!
 
 
-## Visualization Module
+## Visualization
 
 ### Usage/Syntax:
 
@@ -60,11 +60,8 @@ If you wish to add a module, here is how to do so:
 Visualization(Methods)
 ```
 
-Where:
-
-* Methods - Cell list of methods to be visualized.
-  If benchmark exists, and you want to visualize it as well, the name 'Benchmark' needs to be within this cell list.
-  *If no Methods are supplied, then the default is everything within the results of the Computation module*
+`Methods` is a cell array of methods to be visualized.
+If benchmark exists, and you want to visualize it as well, then include `'Benchmark'` in the list.
 
 ### File Structure
 

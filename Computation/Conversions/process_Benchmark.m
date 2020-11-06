@@ -1,8 +1,8 @@
-function [Output] = process_Benchmark(benchFilename, numNodes)
+function Output = process_Benchmark(benchFilename, numNodes)
 % Function that processes the community data of the benchmark
 
 % Reads the file
-fid = fopen([benchFilename '.dat'], 'r');
+fid = fopen(benchFilename, 'r');
 temp = textscan(fid, '%d', 'Delimiter', {' ', '\n'});
 fclose(fid);
 

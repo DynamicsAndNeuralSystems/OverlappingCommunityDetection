@@ -1,3 +1,4 @@
+function [COMTY ending] = cluster_jl(M,s,self,debug,verbose)
 % Iplementation : Antoine Scherrer
 % antoine.scherrer@ens-lyon.fr
 % Apply clustering after :
@@ -29,7 +30,10 @@
 %   COMTY.MOD(i) : modularity of clustering
 %   COMTY.Niter(i) : Number of iteration before convergence
 %
-function [COMTY ending] = cluster_jl(M,s,self,debug,verbose)
+
+%-------------------------------------------------------------------------------
+% Check Inputs:
+%-------------------------------------------------------------------------------
 
 if nargin < 1
   error('not enough argument');
@@ -253,7 +257,7 @@ for j=1:length(COMu)
     Cj = find(C==COMu(j));
     Ec = sum(sum(Mat(Cj,Cj)));
     Et = sum(sum(Mat(Cj,:)));
-    if Et>0
+    if Et > 0
         MOD = MOD + Ec/m-(Et/m)^2;
     end
 end

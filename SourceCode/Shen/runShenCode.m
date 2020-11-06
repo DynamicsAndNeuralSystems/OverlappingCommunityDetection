@@ -1,23 +1,24 @@
-function [NodeLabels] = runShenCode(AdjMat, cSize, cwThresh, lThresh)
+function nodeLabels = runShenCode(AdjMat, cSize, cwThresh, lThresh)
 % Function that runs the Shen method on the matrix
 % Adapted from code by Ben Fulcher
+%-------------------------------------------------------------------------------
 
 A = AdjMat; % Adjacency matrix
-CliqueWeightThreshold = cwThresh; 
+cliqueWeightThreshold = cwThresh; 
 Threshold = lThresh; % Link threshold
 k_r = cSize; % Clique size
 
 % ------------------------------------------------------------------------------
 % Threshold weighted networks
 if any(A(A~=0)~=1); % some non-1, non-0 entries (i.e., a weighted network)
-    IsWeighted = 1; % a weighted network
+    isWeighted = true; % a weighted network
     fprintf(1,'ZOMG it''s a weighted network...!\n');
     Aw = A; % keep the weighted version as Aw
     A = (A > Threshold);
     fprintf(1,'After thresholding at %f, we have a link density ~ %f\n',Threshold, ...
         sum(A(:)/length(A)^2));
 else
-    IsWeighted = 0; % an unweighted network
+    isWeighted = false; % an unweighted network
 end
 
 A = logical(A); % binary, logical matrix
@@ -38,46 +39,46 @@ end
 % Find the maximal cliques in the input matrix:
 maxcliquetimer = tic;
 fprintf(1,'Finding maximal cliques in a %ux%u network using maximalCliques code...',length(A),length(A));
-AllMaxClique = maximalCliques(A);
-fprintf(1,' Done in %s.\n',BF_thetime(toc(maxcliquetimer)));
+allMaxClique = maximalCliques(A);
+fprintf(1,' Done in %s.\n',BF_TheTime(toc(maxcliquetimer)));
 clear maxcliquetimer
 
-% AllMaxClique has NumNodes rows, and NumCliques columns
-% AllMaxClique contains all maximum cliques, before thresholding with k
+% allMaxClique has NumNodes rows, and numCliques columns
+% allMaxClique contains all maximum cliques, before thresholding with k
 
 % Give some information
-fprintf(1,'We found %u maximal cliques in the network\n',size(AllMaxClique,2));
+fprintf(1,'We found %u maximal cliques in the network\n',size(allMaxClique,2));
 
 
 % ------------------------------------------------------------------------------
 % Only include maximal cliques with a minimum weight
-if IsWeighted && (CliqueWeightThreshold > 0)
+if isWeighted && (cliqueWeightThreshold > 0)
     fprintf(1,'Experimenting with applying a clique weight threshold of %f\n', ...
-        CliqueWeightThreshold);
-    NumCliques = size(AllMaxClique,2);
-    MeanCliqueWeight = zeros(NumCliques,1);
-    for i = 1:NumCliques
-        TheNodes = (AllMaxClique(:,i)>0); % Which nodes are in this clique
-        TheLinks = Aw(TheNodes,TheNodes); % Subsection of adjacency matrix
-        JustLinks = TheLinks(triu(logical(ones(sum(TheNodes))),+1)); % List of link weights in this clique
-        MeanCliqueWeight(i) = mean(JustLinks); % (arithmetic) mean link weight within the clique
+        cliqueWeightThreshold);
+    numCliques = size(allMaxClique,2);
+    meanCliqueWeight = zeros(numCliques,1);
+    for i = 1:numCliques
+        theNodes = (allMaxClique(:,i)>0); % Which nodes are in this clique
+        theLinks = Aw(theNodes,theNodes); % Subsection of adjacency matrix
+        justLinks = theLinks(triu(logical(ones(sum(theNodes))),+1)); % List of link weights in this clique
+        meanCliqueWeight(i) = mean(justLinks); % (arithmetic) mean link weight within the clique
     end
-    KeepCliques = (MeanCliqueWeight > CliqueWeightThreshold);
+    keepCliques = (meanCliqueWeight > cliqueWeightThreshold);
     fprintf(1,'Keeping %u / %u maximal cliques with mean link weight exceeding %f!\n', ...
-        sum(KeepCliques),NumCliques,CliqueWeightThreshold);
-    AllMaxClique = AllMaxClique(:,KeepCliques);
+        sum(keepCliques),numCliques,cliqueWeightThreshold);
+    allMaxClique = allMaxClique(:,keepCliques);
 end
 
 
 % Compute the size of each computed maximal clique
-MaxCliqueSize = sum(AllMaxClique);
+maxCliqueSize = sum(allMaxClique);
 
 % ------------------------------------------------------------------------------
 % Now we start to use k to threshold the set of all maximal cliques
 % Iterate over the full k range specified by the user
 % ------------------------------------------------------------------------------
 
-NodeLabels = cell(NumNodes,length(k_r));
+nodeLabels = cell(NumNodes,length(k_r));
 QcValues = zeros(length(k_r),1);
 
 for ki = 1:length(k_r)
@@ -88,41 +89,41 @@ for ki = 1:length(k_r)
     fprintf(1,'\n------------k = %u-------------\n\n',k);
     
     % Find subordinate maximal cliques
-    IsSubordinate = (MaxCliqueSize < k);
+    isSubordinate = (maxCliqueSize < k);
     
     fprintf(1,'%u (/%u) maximal clique(s) were large enough to be included as maximal cliques\n', ...
-        sum(~IsSubordinate),length(IsSubordinate));
+        sum(~isSubordinate),length(isSubordinate));
     fprintf(1,['%u (/%u) maximal clique(s) were too small to be included as maximal cliques at k = %u\n' ...
         '----These will be decomposed into subordinate vertices\n'], ...
-        sum(IsSubordinate),length(IsSubordinate),k);
+        sum(isSubordinate),length(isSubordinate),k);
     
     % Find nodes that ONLY belong to subordinate maximal cliques
     % (the number of subordinate maximal cliques a vertex belongs to is the same as the number of
     % maximal cliques it belongs to:)
-    SubordinateNode = (AllMaxClique*IsSubordinate' == sum(AllMaxClique,2));
+    subordinateNode = (allMaxClique*isSubordinate' == sum(allMaxClique,2));
     
-    fprintf(1,'%u subordinate vertices...\n',sum(SubordinateNode));
+    fprintf(1,'%u subordinate vertices...\n',sum(subordinateNode));
     
     % So now we want a network consisting of maximal cliques and subordinate nodes,
     % a cover of the original network
     
     % First make Gprime have only maximal cliques:
-    JustMaximalCliques = AllMaxClique(:,~IsSubordinate);
-    Gprime = JustMaximalCliques;
+    justMaximalCliques = allMaxClique(:,~isSubordinate);
+    Gprime = justMaximalCliques;
     
     % Then append the subordinate vertices:
-    if any(SubordinateNode)
-        fSubordinateNode = find(SubordinateNode);
-        NumSubNode = sum(SubordinateNode);
+    if any(subordinateNode)
+        fsubordinateNode = find(subordinateNode);
+        numSubNode = sum(subordinateNode);
         % Zeros to start
-        AllSubNodes = zeros(NumNodes,NumSubNode);
+        allSubNodes = zeros(NumNodes,numSubNode);
         % Then add a one in each column for that node:
-        for i = 1:NumSubNode
-            AllSubNodes(fSubordinateNode(i),i) = 1;
+        for i = 1:numSubNode
+            allSubNodes(fsubordinateNode(i),i) = 1;
         end
         
         % Add to Gprime
-        Gprime = [Gprime,AllSubNodes];
+        Gprime = [Gprime,allSubNodes];
     end
     
     Gprime = logical(Gprime);
@@ -130,8 +131,8 @@ for ki = 1:length(k_r)
     % ------------------------------------------------------------------------------
     %% Now we have our Gprime!
     % ------------------------------------------------------------------------------
-    CoverSize = size(Gprime,2);
-    fprintf(1,'We have %u clusters/subordinate vertices in our cover, Gprime\n',CoverSize);
+    coverSize = size(Gprime,2);
+    fprintf(1,'We have %u clusters/subordinate vertices in our cover, Gprime\n',coverSize);
     
     % ------------------------------------------------------------------------------
     %% Compute Belonging Coefficients for the cover specified by Gprime
@@ -148,9 +149,9 @@ for ki = 1:length(k_r)
     
     % ---Implementation 1---
     % fprintf(1,'Constructing new adjacency matrix from belonging coefficients...');
-    % B = zeros(CoverSize);
-    % for i = 1:CoverSize
-    %     for j = 1:CoverSize
+    % B = zeros(coverSize);
+    % for i = 1:coverSize
+    %     for j = 1:coverSize
     %         bigsum = @(x)sum(x(:));
     %         B(i,j) = bigsum(alpha(:,i)*alpha(:,j)'.*A);
     %     end
@@ -163,20 +164,20 @@ for ki = 1:length(k_r)
     % Sparse version is about twice as fast
     alpha_s = sparse(alpha);
     fprintf(1,'Constructing a new adjacency matrix from belonging coefficients...');
-    B = zeros(CoverSize);
-    for i = 1:CoverSize
-        for j = i:CoverSize
+    B = zeros(coverSize);
+    for i = 1:coverSize
+        for j = i:coverSize
             bigsum = @(x)sum(x(:));
             B(i,j) = bigsum(alpha_s(:,i)*alpha_s(:,j)'.*A_s);
         end
-        if CoverSize > 50 && (i==1 || mod(i,floor(CoverSize/10))==0)
+        if coverSize > 50 && (i==1 || mod(i,floor(coverSize/10))==0)
             fprintf(1,'Less than %s remaining! We''re at %u / %u\n', ...
-                BF_thetime(toc(adjtimer)/i*(CoverSize-i)),i,CoverSize)
+                BF_TheTime(toc(adjtimer)/i*(coverSize-i)),i,coverSize)
         end
     end
     B = B + B'; % Symmetrize
     B(logical(diag(ones(length(B),1)))) = B(logical(diag(ones(length(B),1))))/2; % half diagonal entries
-    fprintf(1,' Done in %s.\n',BF_thetime(toc(adjtimer)));
+    fprintf(1,' Done in %s.\n',BF_TheTime(toc(adjtimer)));
     
     
     % ------------------------------------------------------------------------------
@@ -185,36 +186,36 @@ for ki = 1:length(k_r)
     
     modtimer = tic;
     fprintf(1,'Using fast unfolding algorithm for community detection on B...');
-    CommunityStruct = cluster_jl(B,1,1,0);
-    fprintf(1,' Done in %s :)\n',BF_thetime(toc(modtimer)));
+    communityStruct = cluster_jl(B,1,1,0);
+    fprintf(1,' Done in %s :)\n',BF_TheTime(toc(modtimer)));
     clear modtimer
     
     
     % ------------------------------------------------------------------------------
     % Extract the communities:
     % ------------------------------------------------------------------------------
-    for i = 1:length(CommunityStruct.MOD)
+    for i = 1:length(communityStruct.MOD)
         fprintf(1,'%u: %u communities, modularity = %.3g\n',i, ...
-            length(CommunityStruct.SIZE{i}),CommunityStruct.MOD(i));
+            length(communityStruct.SIZE{i}),communityStruct.MOD(i));
     end
     
-    NumComms = length(CommunityStruct.SIZE{end});
+    NumComms = length(communityStruct.SIZE{end});
     fprintf(1,'We found %u communities in the cover network after %u iterations\n', ...
-        NumComms,length(CommunityStruct.Niter));
-    Modularity = CommunityStruct.MOD(end);
+        NumComms,length(communityStruct.Niter));
+    Modularity = communityStruct.MOD(end);
     fprintf(1,'With a modularity of %f (min = %f, max = %f)\n', ...
-        Modularity, min(CommunityStruct.MOD), max(CommunityStruct.MOD));
-    CommLabels = CommunityStruct.COM{end};
+        Modularity, min(communityStruct.MOD), max(communityStruct.MOD));
+    CommLabels = communityStruct.COM{end};
     
     % ------------------------------------------------------------------------------
     % Assign community labels to each node in the original graph:
     % ------------------------------------------------------------------------------
     
-    % NodeLabels gives each node in the original network a label (or set of labels)
+    % nodeLabels gives each node in the original network a label (or set of labels)
     % indicating its community assignment
     for i = 1:NumNodes
-        NodeLabels{i,ki} = unique(CommLabels(Gprime(i,:)));
+        nodeLabels{i,ki} = unique(CommLabels(Gprime(i,:)));
     end
     
-    QcValues(ki) = ComputeQc(ConvertNodeLabelsToCover(NodeLabels(:,ki)),A);
+    QcValues(ki) = ComputeQc(ConvertnodeLabelsToCover(nodeLabels(:,ki)),A);
 end

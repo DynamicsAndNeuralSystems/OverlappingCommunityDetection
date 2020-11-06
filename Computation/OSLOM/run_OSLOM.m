@@ -5,8 +5,8 @@ function run_OSLOM(Undir, numIters, Tol)
 %-------------------------------------------------------------------------------
 % Write data into the OSLOM directory
 %-------------------------------------------------------------------------------
-pathBase = pwd();
-filePath = fullfile('Computation','SourceCode','OSLOM'); % File path from module to OSLOM code
+pathBase = GiveMeBaseDir();
+filePath = fullfile('SourceCode','OSLOM'); % File path from module to OSLOM code
 cd(filePath); % Goes into the pathway of the code
 
 %-------------------------------------------------------------------------------

@@ -36,14 +36,14 @@ end
 %% Converting the input into all the formats
 %-------------------------------------------------------------------------------
 
-if size(adjMatrix,1) == size(adjMatrix,2) % matrix
+if size(adjMatrix,1) == size(adjMatrix,2) % square adjacency matrix
     Mat = adjMatrix;
     numNodes = size(Mat,1); % Number of nodes
 
     DirList = Mat2Direct(Mat,numNodes); % Calls function to convert matrix to directed list
     Undir = Mat2Undir(Mat); % Calls function to make undirected adjMatrix
 
-elseif size(adjMatrix,3) % List format
+elseif size(adjMatrix,2)==3 % List format
     if sum(adjMatrix(:,1) > adjMatrix(:,2)) == 0 % (undirected)
         Undir = adjMatrix;
         numNodes = max(max(Undir(:,1:2))); % Calculates the number of nodes in the system
@@ -61,6 +61,7 @@ elseif size(adjMatrix,3) % List format
 else
     error('Error: Input adjacency matrix is not one of the accepted formats');
 end
+keyboard
 
 % So now we have 3 representations of the same object:
 % Mat: adjacency matrix (full)

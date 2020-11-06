@@ -1,16 +1,16 @@
-function Cover = ConvertNodeLabelsToCover(NodeLabels)
+function Cover = ConvertNodeLabelsToCover(nodeLabels)
 
 try
-    NumComms = length(unique(vertcat(NodeLabels{:})));
+    numComms = length(unique(vertcat(nodeLabels{:})));
 catch
-    NumComms = length(unique(horzcat(NodeLabels{:})));
+    numComms = length(unique(horzcat(nodeLabels{:})));
 end
-NumNodes = length(NodeLabels);
+numNodes = length(nodeLabels);
 
-Cover = zeros(NumNodes,NumComms);
+Cover = zeros(numNodes,numComms);
 
-for i = 1:NumComms
-    Cover(:,i) = cellfun(@(x)ismember(i,x),NodeLabels);
+for i = 1:numComms
+    Cover(:,i) = cellfun(@(x)ismember(i,x),nodeLabels);
 end
 
 end

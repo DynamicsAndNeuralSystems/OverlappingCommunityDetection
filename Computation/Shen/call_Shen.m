@@ -1,5 +1,9 @@
 function Output = call_Shen(Mat, numNodes, cliqueSize, cwThresh, lThresh)
-% Shen OCDA
+% OCDA method of Shen et al. (2009):
+% 
+% Shen et al. (2009). Quantifying and identifying the overlapping community
+% structure in networks. Journal of Statistical Mechanics: Theory and Experiment.
+% http://stacks.iop.org/1742-5468/2009/i=07/a=P07042
 % 
 %---Inputs:
 % Adjacency matrix, Mat

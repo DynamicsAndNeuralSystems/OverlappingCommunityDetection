@@ -1,46 +1,44 @@
-function Qc = ComputeQc(Cover,AdjMat)
+function Qc = ComputeQc(Cover,adjMat)
 % Computes the Q_c value for a given partition of nodes into groups
-% Ben Fulcher, 2014-03-31
-
 % Definition is Eq. (2) of Shen et al., 2009
+%-------------------------------------------------------------------------------
+% Ben Fulcher, 2014-03-31
+%-------------------------------------------------------------------------------
 
-if any(AdjMat(AdjMat>0)~=1)
+if any(adjMat(adjMat>0)~=1)
     warning('The adjacency matrix is not binary... Tread carefully, padawan.');
 end
 
-if any(diag(AdjMat)) ~= 0
+if any(diag(adjMat)) ~= 0
     error('We need zeros on our diagonal.');
 end
 
-if sum(sum(AdjMat-AdjMat'))~=0
+if sum(sum(adjMat-adjMat'))~=0
     error('Adjacency matrix should be symmetric');
 end
 
 fprintf(1,'This is a symmetric network with zero diagonals...! Well done.\n');
 
-% AdjMat is the adjacency matrix: [NumNodes x NumNodes]
-% Cover is binary: [NumNodes x NumComms]
+% adjMat is the adjacency matrix: [numNodes x numNodes]
+% Cover is binary: [numNodes x numComms]
 
 % ------------------------------------------------------------------------------
 % Preliminaries
 % ------------------------------------------------------------------------------
-NumNodes = size(Cover,1);
-NumComms = size(Cover,2);
+numNodes = size(Cover,1);
+numComms = size(Cover,2);
 
 % ------------------------------------------------------------------------------
 % Compute belonging coefficients
+% alpha: [numNodes x numComms]
 % ------------------------------------------------------------------------------
-alpha = ComputeBelongingCoeff(Cover,AdjMat);
-
-% alpha: [NumNodes x NumComms]
+alpha = ComputeBelongingCoeff(Cover,adjMat);
 
 % ------------------------------------------------------------------------------
 % Degree of each node
+% k: [numNodes x 1]
 % ------------------------------------------------------------------------------
-
-k = sum(AdjMat)';
-
-% k: [NumNodes x 1]
+k = sum(adjMat)';
 
 % ------------------------------------------------------------------------------
 % Compute Q_c
@@ -49,10 +47,10 @@ k = sum(AdjMat)';
 % Total weight of all edges, L
 L = sum(k);
 
-Qc_c = zeros(NumComms,1);
-for i = 1:NumComms
+Qc_c = zeros(numComms,1);
+for i = 1:numComms
     % Calculate the contribution to the sum from each community
-    Qc_c(i) = sum(sum(alpha(:,i)*alpha(:,i)'.*(AdjMat-k*k'/L)));
+    Qc_c(i) = sum(sum(alpha(:,i)*alpha(:,i)'.*(adjMat-k*k'/L)));
 end
 Qc = sum(Qc_c)/L;
 

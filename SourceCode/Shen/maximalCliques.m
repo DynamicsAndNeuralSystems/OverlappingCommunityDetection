@@ -1,4 +1,4 @@
-function [ MC ] = maximalCliques( A, v_str )
+function MC = maximalCliques(A, v_str)
 %MAXIMALCLIQUES Find maximal cliques using the Bron-Kerbosch algorithm
 %   Given a graph's boolean adjacency matrix, A, find all maximal cliques 
 %   on A using the Bron-Kerbosch algorithm in a recursive manner.  The 

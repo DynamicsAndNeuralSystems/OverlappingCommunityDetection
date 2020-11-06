@@ -2,6 +2,16 @@
 
 These modules are separated into the computation and visualization modules, where computation does all the calculations, and visualization allows you to view the results and compare them.
 
+## Compilation
+In the `SourceCode` directory, some algorithms need to be compiled for your system (from the terminal).
+
+#### OSLOM (C)
+In `SourceCode/OSLOM`:
+
+```shell
+./compile_all.sh
+```
+
 ## Computation
 
 ### Usage/Syntax:
@@ -28,7 +38,8 @@ Each community detection method has its own directory within the `Computation_Mo
 Each directory, `MethodName`, contains 3 files -
 
 * `call_[MethodName]` - This function is called by the overarching `computation.m` function. It simplifies the entire process down to one line.
-* `run_[MethodName]` - This function is called to do the actual calculations; running the algorithm and spitting out its output (Note: If calculations need to be hard coded to specific directories, this is done within this `.m` file. For examples, view `run_Gopalan`).
+* `run_[MethodName]` - This function is called to do the actual calculations; running the algorithm and spitting out its output (Note: If calculations need to be hard coded to specific directories, this is done within this `.m` file.
+  For examples, view `run_Gopalan`).
 * `process_[MethodName]` - Called after running the algorithm, as this function will take the algorithm output and convert it to the universal matrix format, explained below.
 
 In addition, source code for each algorithm is in a directory in the `SourceCode` directory.

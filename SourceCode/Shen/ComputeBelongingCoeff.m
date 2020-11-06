@@ -1,19 +1,21 @@
-function alpha = ComputeBelongingCoeff(Cover,AdjMat);
+function alpha = ComputeBelongingCoeff(Cover,adjMat);
 % Cover is a matrix with a row for each node, and a column for each community
 % A 1 at (i,j) indicates that node i is a member of community j.
+%-------------------------------------------------------------------------------
 % Ben Fulcher, 2014-03-31
+%-------------------------------------------------------------------------------
 
-NumNodes = size(Cover,1);
-NumComms = size(Cover,2);
+numNodes = size(Cover,1);
+numComms = size(Cover,2);
 
 fprintf(1,'Calculating belonging coefficients for %u nodes in %u communities...', ...
-                    NumNodes,NumComms);
+                    numNodes,numComms);
 
-alpha = zeros(NumNodes,NumComms);
+alpha = zeros(numNodes,numComms);
 
 BelongingTimer = tic;
 
-for i = 1:NumNodes
+for i = 1:numNodes
     
     if sum(Cover(i,:)==1)
         % Node i is only a member of its own solitary community
@@ -23,7 +25,7 @@ for i = 1:NumNodes
         % Need to compute definitions for belonging coefficients...
         
         % Loop over each community to compute belonging coefficients:
-        for j = 1:NumComms
+        for j = 1:numComms
             % ---Belonging coefficients:
             % How much does node i belong in community j, Eq. (7) in Shen et al., 2009
             % Loop over other nodes in community j
@@ -34,7 +36,7 @@ for i = 1:NumNodes
                 % Check whether each link that occurs in the full graph, A_ij, occurs in this clique:
                 % ij_links_c is a logical expressing this for each link the node has in the full graph,
                 % i.e., A(i,:)
-                ij_links_c = Cover(AdjMat(i,:),j);
+                ij_links_c = Cover(adjMat(i,:),j);
                 % Check how often the link, A_ij, occurs across all maximal cliques
                 % (use all of Cover for now -- the same result, just suboptimal, computationally)
                 if sum(ij_links_c) > 0
@@ -60,6 +62,6 @@ for i = 1:NumNodes
     alpha(i,:) = alpha(i,:)/sum(alpha(i,:));
 
 end
-fprintf(1,' Done in %s.\n',BF_thetime(toc(BelongingTimer)));
+fprintf(1,' Done in %s.\n',BF_TheTime(toc(BelongingTimer)));
 
 end

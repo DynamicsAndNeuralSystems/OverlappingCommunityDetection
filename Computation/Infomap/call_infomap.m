@@ -1,7 +1,7 @@
 function [Output] = call_infomap(dirlist, numnodes)
-% Jerry
+% Infomap
 % Input is Edgelist
-% Runs the Jerry method
+% Runs the Infomap method
 
 run_infomap(dirlist);
 % 

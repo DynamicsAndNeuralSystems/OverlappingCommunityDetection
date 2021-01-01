@@ -1,5 +1,5 @@
 function [Output] = process_infomap(numnodes)
-% Function that processes the output of the Jerry method into the matrix
+% Function that processes the output of the Infomap method into the matrix
 
 cd output
 Output = cell(1, 1);

@@ -26,48 +26,34 @@
 
 #include <iostream>
 #include <sstream>
-#include <vector>
 #include <string>
 
 #include <Infomap.h>
-#include <Infomap/MemNetwork.h>
-
-using std::vector;
-using std::string;
-
-void parseM2ClusterInfo(std::string line, int &n1, int &n2){
-	std::istringstream m_extractor;
-	m_extractor.clear();
-    m_extractor.str(line);
-    std::string tmpString;
-    if (!(m_extractor >> n1 >> tmpString >> n2)) {
-        std::cout << "error" << std::endl;
-    }
-}
 
 void printClusters(infomap::HierarchicalNetwork & tree) {
-	int n1, n2;
-    std::cout << "\nClusters:\n#from to clusterIndex:\n";
+    std::cout << "\nClusters:\n#physIndex clusterIndex:\n";
     for (infomap::LeafIterator leafIt(&tree.getRootNode()); !leafIt.isEnd(); ++leafIt) {
-    	parseM2ClusterInfo(leafIt->data.name, n1, n2);
-        std::cout << n1 << " " << n2 << " " << leafIt->parentNode->parentIndex << '\n';
+        std::cout << leafIt->physIndex << " " << leafIt.moduleIndex() << '\n';
     }
 }
 
 int main(int argc, char** argv)
 {
-	infomap::Config config = infomap::init("--two-level -i3gram -N2 --expanded");
+	infomap::MemInfomap infomapWrapper("--two-level");
 
-	infomap::MemNetwork network(config);
+	infomapWrapper.addTrigram(0, 2, 0);
+	infomapWrapper.addTrigram(0, 2, 1);
+	infomapWrapper.addTrigram(1, 2, 1);
+	infomapWrapper.addTrigram(1, 2, 0);
+	infomapWrapper.addTrigram(1, 2, 3);
+	infomapWrapper.addTrigram(3, 2, 3);
+	infomapWrapper.addTrigram(2, 3, 4);
+	infomapWrapper.addTrigram(3, 2, 4);
+	infomapWrapper.addTrigram(4, 2, 4);
+	infomapWrapper.addTrigram(4, 2, 3);
+	infomapWrapper.addTrigram(4, 3, 3);
 
-	network.addM2Link(2, 1, 1, 2, 1.0);
-	network.addM2Link(1, 2, 2, 1, 1.0);
-
-	network.finalizeAndCheckNetwork();
-
-	infomap::HierarchicalNetwork resultNetwork(config);
-
-	infomap::run(network, resultNetwork);
-
-	printClusters(resultNetwork);
+	infomapWrapper.run();
+	
+	printClusters(infomapWrapper.tree);
 }

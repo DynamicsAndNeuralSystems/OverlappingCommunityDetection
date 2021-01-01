@@ -3,9 +3,9 @@
  Infomap software package for multi-level network clustering
 
  Copyright (c) 2013, 2014 Daniel Edler, Martin Rosvall
- 
+
  For more information, see <http://www.mapequation.org>
- 
+
 
  This file is part of Infomap software package.
 
@@ -44,10 +44,13 @@ namespace infomap
 
 struct DepthStat;
 struct PerLevelStat;
+struct PerIterationStats;
 class PartitionQueue;
 
 class InfomapBase
 {
+protected:
+	typedef Edge<NodeBase>												EdgeType;
 public:
 	InfomapBase(const Config& conf, NodeFactoryBase* nodeFactory)
 	:	m_config(conf),
@@ -55,6 +58,7 @@ public:
 		m_treeData(nodeFactory),
 	 	m_activeNetwork(m_nonLeafActiveNetwork),
 	 	m_isCoarseTune(false),
+	 	m_trialIndex(0),
 	 	m_tuneIterationIndex(0),
 	 	m_aggregationLevel(0),
 	 	m_numNonTrivialTopModules(0),
@@ -69,7 +73,33 @@ public:
 	 	bestIntermediateCodelength(std::numeric_limits<double>::max()),
 		m_initialMaxNumberOfModularLevels(0),
 		m_ioNetwork(conf),
-		m_externalOutput(false)
+		m_externalOutput(false),
+		bestNumLevels(0)
+	{}
+
+	InfomapBase(const InfomapBase& infomap, NodeFactoryBase* nodeFactory)
+	:	m_config(infomap.m_config),
+	 	m_rand(infomap.m_config.seedToRandomNumberGenerator + 1),
+		m_treeData(nodeFactory),
+	 	m_activeNetwork(m_nonLeafActiveNetwork),
+	 	m_isCoarseTune(false),
+	 	m_trialIndex(infomap.m_trialIndex),
+	 	m_tuneIterationIndex(0),
+	 	m_aggregationLevel(0),
+	 	m_numNonTrivialTopModules(0),
+	 	m_subLevel(infomap.m_subLevel),
+	 	m_TOP_LEVEL_ADDITION(1 << 20),
+	 	oneLevelCodelength(0.0),
+	 	codelength(0.0),
+	 	indexCodelength(0.0),
+	 	moduleCodelength(0.0),
+	 	hierarchicalCodelength(0.0),
+		bestHierarchicalCodelength(std::numeric_limits<double>::max()),
+	 	bestIntermediateCodelength(std::numeric_limits<double>::max()),
+		m_initialMaxNumberOfModularLevels(0),
+		m_ioNetwork(infomap.m_config),
+		m_externalOutput(false),
+		bestNumLevels(0)
 	{}
 
 	virtual ~InfomapBase()
@@ -79,16 +109,34 @@ public:
 
 	void run(Network& input, HierarchicalNetwork& output);
 
+	void run(HierarchicalNetwork& output);
+
 	bool initNetwork();
 
 	bool initNetwork(Network& input);
 
 	void calcOneLevelCodelength();
 
+	void calcEntropyRate();
+
 	bool consolidateExternalClusterData(bool printResults = false);
+
+	virtual bool preClusterMultiplexNetwork(bool printResults = false);
 
 	// Cannot be protected as they are called from inherited class through pointer to this class.
 	const NodeBase* root() const { return m_treeData.root(); }
+	NodeBase* root() { return m_treeData.root(); }
+
+	unsigned int maxDepth();
+
+	unsigned int numNonTrivialTopModules() { return m_numNonTrivialTopModules; }
+	unsigned int numTopModules() { return m_treeData.root()->childDegree(); }
+
+	unsigned int numBottomModules();
+
+	unsigned int numLeafNodes() { return m_treeData.numLeafNodes(); }
+
+	double getHierarchicalCodelength() { return hierarchicalCodelength; }
 
 	void sortTree();
 
@@ -100,7 +148,9 @@ protected:
 
 	virtual FlowDummy getNodeData(NodeBase& node) = 0;
 	virtual std::vector<PhysData>& getPhysicalMembers(NodeBase& node) = 0;
-	virtual M2Node& getMemoryNode(NodeBase& node) = 0;
+	virtual StateNode& getMemoryNode(NodeBase& node) = 0;
+
+	void initPreClustering(bool printResults = false);
 
 	/**
 	 * Set the exit (and enter) flow on the nodes.
@@ -188,6 +238,7 @@ protected:
 	virtual unsigned int consolidateModules(bool replaceExistingStructure = true, bool asSubModules = false) = 0;
 
 	virtual std::auto_ptr<InfomapBase> getNewInfomapInstance() = 0;
+	virtual std::auto_ptr<InfomapBase> getNewInfomapInstanceWithoutMemory() = 0;
 
 	virtual unsigned int aggregateFlowValuesFromLeafToRoot() = 0;
 
@@ -213,13 +264,6 @@ protected:
 
 	virtual void sortTree(NodeBase& parent) = 0;
 
-	NodeBase* root() { return m_treeData.root(); }
-
-	unsigned int numNonTrivialTopModules() { return m_numNonTrivialTopModules; }
-	unsigned int numTopModules() { return m_treeData.root()->childDegree(); }
-
-	unsigned int numLeafNodes() { return m_treeData.numLeafNodes(); }
-
 	virtual unsigned int numDynamicModules() = 0;
 
 	bool isTopLevel() { return (m_subLevel & (m_TOP_LEVEL_ADDITION-1)) == 0; }
@@ -240,12 +284,14 @@ protected:
 		return static_cast<unsigned long int>(value/m_config.minimumCodelengthImprovement);
 	}
 
-	void reseed(unsigned long int seed) { m_rand.seed(seed); }
+	void reseed(unsigned long int seed) {
+		m_rand.seed((seed + 1) * (m_trialIndex + 1) + m_config.seedToRandomNumberGenerator);
+	}
 
 private:
 	void runPartition();
 	double partitionAndQueueNextLevel(PartitionQueue& partitionQueue, bool tryIndexing = true);
-	void tryIndexingIteratively();
+	void tryIndexingIteratively(bool replaceExistingModules = true);
 	unsigned int findSuperModulesIterativelyFast(PartitionQueue& partitionQueue);
 	unsigned int deleteSubLevels();
 	void queueTopModules(PartitionQueue& partitionQueue);
@@ -295,6 +341,7 @@ protected:
 	std::vector<NodeBase*>& m_activeNetwork; // Points either to m_nonLeafActiveNetwork or m_treeData.m_leafNodes
 	std::vector<unsigned int> m_moveTo;
 	bool m_isCoarseTune;
+	unsigned int m_trialIndex;
 	unsigned int m_tuneIterationIndex;
 	unsigned int m_aggregationLevel;
 	unsigned int m_numNonTrivialTopModules;
@@ -311,6 +358,10 @@ protected:
 	unsigned int m_initialMaxNumberOfModularLevels;
 	HierarchicalNetwork m_ioNetwork;
 	bool m_externalOutput; // Write to external HierarchicalNetwork
+	std::vector<PerIterationStats> m_iterationStats;
+
+	std::ostringstream bestSolutionStatistics;
+	unsigned int bestNumLevels;
 
 };
 
@@ -395,6 +446,191 @@ struct PerLevelStat
 	unsigned int numLeafNodes;
 	double indexLength;
 	double leafLength;
+};
+
+struct PerIterationStats
+{
+	PerIterationStats()
+	:	iterationIndex(0),
+		numTopModules(0),
+		numBottomModules(0),
+		topPerplexity(0.0),
+		bottomPerplexity(0.0),
+		topOverlap(0.0),
+		bottomOverlap(0.0),
+		codelength(0.0),
+		maxDepth(0),
+		weightedDepth(0.0),
+		seconds(0.0),
+		isMinimum(false) {}
+	unsigned int iterationIndex;
+	unsigned int numTopModules;
+	unsigned int numBottomModules;
+	double topPerplexity; // Perplexity of top module flow distribution
+	double bottomPerplexity;
+	double topOverlap; // Average number of modules per physical node
+	double bottomOverlap;
+	double codelength;
+	unsigned int maxDepth;
+	double weightedDepth;
+	double seconds;
+	bool isMinimum;
+};
+
+struct IterationStatsSortIterationIndex {
+	bool operator()(const PerIterationStats& a, const PerIterationStats& b)
+	{   
+		return a.iterationIndex < b.iterationIndex;
+	}
+};
+
+struct IterationStatsSortNumTopModules {
+	bool operator()(const PerIterationStats& a, const PerIterationStats& b)
+	{   
+		return a.numTopModules < b.numTopModules;
+	}
+};
+
+struct IterationStatsSortNumBottomModules {
+	bool operator()(const PerIterationStats& a, const PerIterationStats& b)
+	{   
+		return a.numBottomModules < b.numBottomModules;
+	}
+};
+
+struct IterationStatsSortTopPerplexity {
+	bool operator()(const PerIterationStats& a, const PerIterationStats& b)
+	{   
+		return a.topPerplexity < b.topPerplexity;
+	}
+};
+
+struct IterationStatsSortBottomPerplexity {
+	bool operator()(const PerIterationStats& a, const PerIterationStats& b)
+	{   
+		return a.bottomPerplexity < b.bottomPerplexity;
+	}
+};
+
+struct IterationStatsSortTopOverlap {
+	bool operator()(const PerIterationStats& a, const PerIterationStats& b)
+	{   
+		return a.topOverlap < b.topOverlap;
+	}
+};
+
+struct IterationStatsSortBottomOverlap {
+	bool operator()(const PerIterationStats& a, const PerIterationStats& b)
+	{   
+		return a.bottomOverlap < b.bottomOverlap;
+	}
+};
+
+struct IterationStatsSortMaxDepth {
+	bool operator()(const PerIterationStats& a, const PerIterationStats& b)
+	{   
+		return a.maxDepth < b.maxDepth;
+	}
+};
+
+struct IterationStatsSortWeightedDepth {
+	bool operator()(const PerIterationStats& a, const PerIterationStats& b)
+	{   
+		return a.weightedDepth < b.weightedDepth;
+	}
+};
+
+struct IterationStatsSortCodelength {
+	bool operator()(const PerIterationStats& a, const PerIterationStats& b)
+	{   
+		return a.codelength < b.codelength;
+	}
+};
+
+struct IterationStatsSortSeconds {
+	bool operator()(const PerIterationStats& a, const PerIterationStats& b)
+	{   
+		return a.seconds < b.seconds;
+	}
+};
+
+struct IterationStatsAddNumTopModules {
+	unsigned int operator()(double result, const PerIterationStats& s)
+	{   
+		return result + s.numTopModules;
+	}
+};
+
+struct IterationStatsAddNumBottomModules {
+	unsigned int operator()(double result, const PerIterationStats& s)
+	{   
+		return result + s.numBottomModules;
+	}
+};
+
+struct IterationStatsAddTopPerplexity {
+	double operator()(double result, const PerIterationStats& s)
+	{   
+		return result + s.topPerplexity;
+	}
+};
+
+struct IterationStatsAddBottomPerplexity {
+	double operator()(double result, const PerIterationStats& s)
+	{   
+		return result + s.bottomPerplexity;
+	}
+};
+
+struct IterationStatsAddTopOverlap {
+	double operator()(double result, const PerIterationStats& s)
+	{   
+		return result + s.topOverlap;
+	}
+};
+
+struct IterationStatsAddBottomOverlap {
+	double operator()(double result, const PerIterationStats& s)
+	{   
+		return result + s.bottomOverlap;
+	}
+};
+
+struct IterationStatsAddCodelength {
+	double operator()(double result, const PerIterationStats& s)
+	{   
+		return result + s.codelength;
+	}
+};
+
+struct IterationStatsAddMaxDepth {
+	double operator()(double result, const PerIterationStats& s)
+	{   
+		return result + s.maxDepth;
+	}
+};
+
+struct IterationStatsAddWeightedDepth {
+	double operator()(double result, const PerIterationStats& s)
+	{   
+		return result + s.weightedDepth;
+	}
+};
+
+struct IterationStatsAddSeconds {
+	double operator()(double result, const PerIterationStats& s)
+	{   
+		return result + s.seconds;
+	}
+};
+
+struct AddMapValues
+{
+  template<class Value, class Pair> 
+  Value operator()(Value value, const Pair& pair) const
+  {
+    return value + pair.second;
+  }
 };
 
 #ifdef NS_INFOMAP

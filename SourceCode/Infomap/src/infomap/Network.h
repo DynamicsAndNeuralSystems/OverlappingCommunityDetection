@@ -3,9 +3,9 @@
  Infomap software package for multi-level network clustering
 
  Copyright (c) 2013, 2014 Daniel Edler, Martin Rosvall
- 
+
  For more information, see <http://www.mapequation.org>
- 
+
 
  This file is part of Infomap software package.
 
@@ -34,6 +34,7 @@
 #include "../io/Config.h"
 #include <limits>
 #include <sstream>
+#include <set>
 
 #ifdef NS_INFOMAP
 namespace infomap
@@ -61,14 +62,20 @@ public:
 	 	m_numAggregatedLinks(0),
 	 	m_numSelfLinks(0),
 	 	m_numSelfLinksFound(0),
-	 	m_totalSelfLinkWeight(0),
+		m_totalSelfLinkWeight(0),
+		m_numLinksIgnoredByWeightThreshold(0),
+		m_totalLinkWeightIgnored(0.0),
 		m_addSelfLinks(m_config.selfTeleportationProbability > 0 && m_config.selfTeleportationProbability < 1),
 		m_numAdditionalLinks(0),
 		m_sumAdditionalLinkWeight(0.0),
 	 	m_maxNodeIndex(std::numeric_limits<unsigned int>::min()),
 	 	m_minNodeIndex(std::numeric_limits<unsigned int>::max()),
+	 	m_minFeatureIndex(std::numeric_limits<unsigned int>::max()),
+	 	m_bipartiteStartIndex(std::numeric_limits<unsigned int>::max()),
 	 	m_indexOffset(m_config.zeroBasedNodeNumbers ? 0 : 1),
-		m_numBipartiteNodes(0)
+		m_numBipartiteNodes(0),
+		m_gotDirected(false),
+		m_isFinalized(false)
 	{}
 	Network(const Config& config)
 	:	m_config(config),
@@ -83,13 +90,19 @@ public:
 	 	m_numSelfLinks(0),
 	 	m_numSelfLinksFound(0),
 	 	m_totalSelfLinkWeight(0),
+		m_numLinksIgnoredByWeightThreshold(0),
+		m_totalLinkWeightIgnored(0.0),
 		m_addSelfLinks(m_config.selfTeleportationProbability > 0 && m_config.selfTeleportationProbability < 1),
 		m_numAdditionalLinks(0),
 		m_sumAdditionalLinkWeight(0.0),
 	 	m_maxNodeIndex(std::numeric_limits<unsigned int>::min()),
 	 	m_minNodeIndex(std::numeric_limits<unsigned int>::max()),
+	 	m_minFeatureIndex(std::numeric_limits<unsigned int>::max()),
+	 	m_bipartiteStartIndex(std::numeric_limits<unsigned int>::max()),
 	 	m_indexOffset(m_config.zeroBasedNodeNumbers ? 0 : 1),
-		m_numBipartiteNodes(0)
+		m_numBipartiteNodes(0),
+		m_gotDirected(false),
+		m_isFinalized(false)
 	{}
 	Network(const Network& other)
 	:	m_config(other.m_config),
@@ -104,13 +117,19 @@ public:
 	 	m_numSelfLinks(other.m_numSelfLinks),
 	 	m_numSelfLinksFound(other.m_numSelfLinksFound),
 	 	m_totalSelfLinkWeight(other.m_totalSelfLinkWeight),
+		m_numLinksIgnoredByWeightThreshold(0),
+		m_totalLinkWeightIgnored(0.0),
 		m_addSelfLinks(other.m_addSelfLinks),
 		m_numAdditionalLinks(other.m_numAdditionalLinks),
 		m_sumAdditionalLinkWeight(other.m_sumAdditionalLinkWeight),
 	 	m_maxNodeIndex(other.m_maxNodeIndex),
 	 	m_minNodeIndex(other.m_minNodeIndex),
+	 	m_minFeatureIndex(other.m_minFeatureIndex),
+	 	m_bipartiteStartIndex(other.m_bipartiteStartIndex),
 	 	m_indexOffset(other.m_indexOffset),
-		m_numBipartiteNodes(other.m_numBipartiteNodes)
+		m_numBipartiteNodes(other.m_numBipartiteNodes),
+		m_gotDirected(other.m_gotDirected),
+		m_isFinalized(other.m_isFinalized)
 	{}
 	Network& operator=(const Network& other)
 	{
@@ -126,13 +145,19 @@ public:
 	 	m_numSelfLinks = other.m_numSelfLinks;
 	 	m_numSelfLinksFound = other.m_numSelfLinksFound;
 	 	m_totalSelfLinkWeight = other.m_totalSelfLinkWeight;
+		m_numLinksIgnoredByWeightThreshold = other.m_numLinksIgnoredByWeightThreshold;
+		m_totalLinkWeightIgnored = other.m_totalLinkWeightIgnored;
 	 	m_addSelfLinks = other.m_addSelfLinks;
 		m_numAdditionalLinks = other.m_numAdditionalLinks;
 		m_sumAdditionalLinkWeight = other.m_sumAdditionalLinkWeight;
 	 	m_maxNodeIndex = other.m_maxNodeIndex;
 	 	m_minNodeIndex = other.m_minNodeIndex;
+	 	m_minFeatureIndex = other.m_minFeatureIndex;
+	 	m_bipartiteStartIndex = other.m_bipartiteStartIndex;
 	 	m_indexOffset = other.m_indexOffset;
 	 	m_numBipartiteNodes = other.m_numBipartiteNodes;
+	 	m_gotDirected = other.m_gotDirected;
+		m_isFinalized = other.m_isFinalized;
 	 	return *this;
 	}
 
@@ -144,13 +169,23 @@ public:
 
 	unsigned int addNodes(const std::vector<std::string>& names);
 
+	bool addNode(unsigned int nodeIndex);
+
 	/**
 	 * Add a weighted link between two nodes.
 	 * @return true if a new link was inserted, false if skipped due to cutoff limit or aggregated to existing link
 	 */
 	bool addLink(unsigned int n1, unsigned int n2, double weight = 1.0);
+	
+	bool addBipartiteLink(unsigned int n1, unsigned int n2, double weight = 1.0);
 
 	bool addBipartiteLink(unsigned int featureNode, unsigned int node, bool swapOrder, double weight = 1.0);
+
+	/**
+	 * Change this network to a bipartite network
+	 * @param bipartiteStartIndex Nodes equal to or above this index are treated as feature nodes
+	 */
+	void setBipartiteNodesFrom(unsigned int bipartiteStartIndex);
 
 	/**
 	 * Run after adding links to check for non-feasible values and set the
@@ -167,27 +202,39 @@ public:
 
 	virtual void printNetworkAsPajek(std::string filename) const;
 
+	virtual void printStateNetwork(std::string filename) const;
+
 	unsigned int numNodes() const { return m_numNodes; }
 	const std::vector<std::string>& nodeNames() const { return m_nodeNames; }
 	const std::vector<double>& nodeWeights() const { return m_nodeWeights; }
 	double sumNodeWeights() const { return m_sumNodeWeights; }
 	const std::vector<double>& outDegree() const { return m_outDegree; }
 	const std::vector<double>& sumLinkOutWeight() const { return m_sumLinkOutWeight; }
+	bool haveNode(unsigned int nodeIndex) const { return m_nodes.count(nodeIndex) != 0; }
 
 	const LinkMap& linkMap() const { return m_links; }
 	unsigned int numLinks() const { return m_numLinks; }
 	double totalLinkWeight() const { return m_totalLinkWeight; }
 	double totalSelfLinkWeight() const { return m_totalSelfLinkWeight; }
 
-	bool isBipartite() const { return m_numBipartiteNodes > 0; }
+	bool isBipartite() const { return m_bipartiteStartIndex < std::numeric_limits<unsigned int>::max(); }
+	// bool isBipartite() const { return m_numBipartiteNodes > 0; }
 	unsigned int numBipartiteNodes() const { return m_numBipartiteNodes; }
 
+	void initNodeNames();
 	void swapNodeNames(std::vector<std::string>& target) { target.swap(m_nodeNames); }
+
+	void generateOppositeLinks();
+	void generateOppositeLinkMap(LinkMap& oppositeLinks);
 
 	virtual void disposeLinks() { m_links.clear(); }
 
 	const Config& config() { return m_config; }
 
+	bool gotDirected() { return m_gotDirected; }
+
+	bool isFinalized() { return m_isFinalized; }
+	
 protected:
 
 	void parsePajekNetwork(std::string filename);
@@ -231,19 +278,30 @@ protected:
 	 */
 	bool insertLink(unsigned int n1, unsigned int n2, double weight);
 
+	/**
+	* Insert node if not exist
+	*/
+	bool insertNode(unsigned int nodeIndex);
+
 	virtual void initNodeDegrees();
+
+	/**
+	* Read lines from file until it starts with '*'
+	* and return that line.
+	*/
+	std::string skipUntilHeader(std::ifstream& file);
 
 	/**
 	 * Parse vertices
 	 * @return The line after the vertices
 	 */
-	std::string parseVertices(std::ifstream& file);
+	std::string parseVertices(std::ifstream& file, bool required = true);
 
 	/**
 	 * Parse vertices under the heading
 	 * @return The line after the vertices
 	 */
-	std::string parseVertices(std::ifstream& file, std::string heading);
+	std::string parseVertices(std::ifstream& file, std::string heading, bool required = true);
 
 
 	Config m_config;
@@ -256,6 +314,7 @@ protected:
 	std::vector<double> m_outDegree;
 	std::vector<double> m_sumLinkOutWeight;
 	unsigned int m_numDanglingNodes;
+	std::set<unsigned int> m_nodes;
 
 	LinkMap m_links;
 	unsigned int m_numLinksFound;
@@ -265,6 +324,8 @@ protected:
 	unsigned int m_numSelfLinks;
 	unsigned int m_numSelfLinksFound;
 	double m_totalSelfLinkWeight; // On whole network
+	unsigned int m_numLinksIgnoredByWeightThreshold;
+	double m_totalLinkWeightIgnored;
 
 	// Zooming
 	bool m_addSelfLinks;
@@ -274,6 +335,8 @@ protected:
 	// Checkers
 	unsigned int m_maxNodeIndex; // On links
 	unsigned int m_minNodeIndex; // On links
+	unsigned int m_minFeatureIndex; // On bipartite links
+	unsigned int m_bipartiteStartIndex;
 
 	// Helpers
 	std::istringstream m_extractor;
@@ -282,6 +345,10 @@ protected:
 	// Bipartite
 	std::map<BipartiteLink, Weight> m_bipartiteLinks;
 	unsigned int m_numBipartiteNodes;
+
+	// Other
+	bool m_gotDirected;
+	bool m_isFinalized;
 
 };
 
@@ -305,6 +372,9 @@ struct BipartiteLink
 
 	bool operator<(const BipartiteLink other) const
 	{
+		if (swapOrder != other.swapOrder)
+			return other.swapOrder;
+		
 		return featureNode == other.featureNode ? node < other.node : featureNode < other.featureNode;
 	}
 };
@@ -413,6 +483,16 @@ struct Triple
 	unsigned int n1;
 	unsigned int n2;
 	unsigned int n3;
+};
+
+struct Link
+{
+	Link() : n1(0), n2(0), weight(0.0) {}
+	Link(unsigned int n1, unsigned int n2, double weight) : n1(n1), n2(n2), weight(weight) {}
+
+	unsigned int n1;
+	unsigned int n2;
+	double weight;
 };
 
 #ifdef NS_INFOMAP

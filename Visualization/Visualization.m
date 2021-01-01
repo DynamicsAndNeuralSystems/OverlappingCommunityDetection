@@ -84,7 +84,7 @@ for name = methodNames
             % rectangles
             if ~CommMat(y, x) == 0 % Skips the 0s. Speeds up the process quite a bit
                 rectangle('Position', [tempPos, y - 0.5, Width*CommMat(y, x), 1], ...
-                    'FaceColor', cmp(ceil(64*(x/size(CommMat, 2))), :), ...
+                    'FaceColor', cmp(ceil(256*(x/size(CommMat, 2))), :), ...
                     'EdgeColor', 'None');
             end
 
@@ -105,8 +105,8 @@ for i = 1: size(methodNames, 2)
     XTickLabel = [XTickLabel, XTickLabel(end)+Width]; % Finds all the labels needed
 end
 set(gca, 'XTick', XTickLabel+Width/2); % Sets the axis ticks to these values
-set(gca, 'XTickLabel', methodNames, 'FontSize', 5); % Shows the labels, makes them smaller
-
+set(gca, 'XTickLabel', methodNames, 'FontSize', 10); % Shows the labels, makes them smaller
+set(gca, 'XTickLabelRotation', 45); % Rotates the labels to 45 degrees 
 set(gcf, 'InvertHardCopy', 'off'); % Fixes white background issue
 
 end

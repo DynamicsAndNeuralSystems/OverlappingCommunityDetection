@@ -43,8 +43,15 @@ class MultiplexNetwork : public MemNetwork
 {
 public:
 	typedef std::map<unsigned int, double> InterLinkMap;
-	typedef std::map<M2Node, std::map<M2Node, double> > MultiplexLinkMap;
+	typedef std::map<unsigned int, double> IntraLinkMap;
+	typedef std::map<StateNode, std::map<StateNode, double> > MultiplexLinkMap;
 
+	MultiplexNetwork() :
+		MemNetwork(),
+		m_numIntraLinksFound(0),
+		m_numInterLinksFound(0),
+		m_numMultiplexLinksFound(0)
+	{}
 	MultiplexNetwork(const Config& config) :
 		MemNetwork(config),
 		m_numIntraLinksFound(0),
@@ -61,8 +68,6 @@ public:
 
 	void addMemoryNetworkFromMultiplexLinks();
 
-	void finalizeParser();
-
 protected:
 
 	void parseMultiplexNetwork(std::string filename);
@@ -74,8 +79,22 @@ protected:
 	void generateMemoryNetworkWithInterLayerLinksFromData();
 
 	void generateMemoryNetworkWithSimulatedInterLayerLinks();
+    
+	void generateMemoryNetworkWithJensenShannonSimulatedInterLayerLinks();
+
+	double calculateJensenShannonDivergence(bool &intersect, const IntraLinkMap &layer1OutLinks, double sumOutLinkWeightLayer1, const IntraLinkMap &layer2OutLinks, double sumOutLinkWeightLayer2);
+	double calculateJensenShannonDivergence(bool &intersect, const IntraLinkMap &layer1OutLinks, const IntraLinkMap &layer1OppositeOutLinks, double sumOutLinkWeightLayer1, const IntraLinkMap &layer2OutLinks, const IntraLinkMap &layer2OppositeOutLinks, double sumOutLinkWeightLayer2);
+	double calculateJensenShannonDivergence(bool &intersect, std::vector<const IntraLinkMap *> &layer1LinksVec, double sumOutLinkWeightLayer1, std::vector<const IntraLinkMap *> &layer2LinksVec, double sumOutLinkWeightLayer2);
+	IntraLinkMap::const_iterator *getUndirLinkItPtr(std::vector<pair<IntraLinkMap::const_iterator,IntraLinkMap::const_iterator> > &outLinkItVec);
+	bool undirLinkRemains(std::vector<pair<IntraLinkMap::const_iterator,IntraLinkMap::const_iterator> > &outLinkItVec);
 
 
+	bool createIntraLinksToNeighbouringNodesInTargetLayer(StateLinkMap::iterator stateSourceIt,
+	unsigned int nodeIndex, unsigned int targetLayer, const LinkMap& targetLayerLinks,
+	double linkWeightNormalizationFactor, double stateNodeWeightNormalizationFactor);
+	bool createIntraLinksToNeighbouringNodesInTargetLayer(unsigned int sourceLayer,
+	unsigned int nodeIndex, unsigned int targetLayer, const LinkMap& targetLayerLinks,
+	double linkWeightNormalizationFactor, double stateNodeWeightNormalizationFactor);
 
 	// Helper methods
 
@@ -126,7 +145,7 @@ protected:
 	std::deque<Network> m_networks;
 
 	unsigned int m_numInterLinksFound;
-	std::map<M2Node, InterLinkMap> m_interLinks; // {(layer,node)} -> ({linkedLayer} -> {weight})
+	std::map<StateNode, InterLinkMap> m_interLinks; // {(layer,node)} -> ({linkedLayer} -> {weight})
 	std::map<unsigned int, unsigned int> m_interLinkLayers;
 
 	unsigned int m_numMultiplexLinksFound;

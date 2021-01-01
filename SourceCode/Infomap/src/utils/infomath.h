@@ -3,9 +3,9 @@
  Infomap software package for multi-level network clustering
 
  Copyright (c) 2013, 2014 Daniel Edler, Martin Rosvall
- 
+
  For more information, see <http://www.mapequation.org>
- 
+
 
  This file is part of Infomap software package.
 
@@ -41,12 +41,6 @@ namespace infomath
 {
 
 	inline
-	double log2(double p)
-	{
-		return std::log(p) * M_LOG2E; // M_LOG2E == 1 / M_LN2
-	}
-
-	inline
 	double plogp(double p)
 	{
 		return p > 0.0 ? p * log2(p) : 0.0;
@@ -70,14 +64,20 @@ namespace infomath
 	inline
 	bool isBetween(T value, U lowerLimit, U higherLimit)
 	{
-		return value >= lowerLimit && value <= higherLimit;
+		return value >= static_cast<T>(lowerLimit) && value <= static_cast<T>(higherLimit);
 	}
 
 	template<typename T, typename U>
 	inline
 	bool isBetweenStrict(T value, U lowerLimit, U higherLimit)
 	{
-		return value > lowerLimit && value < higherLimit;
+		return value > static_cast<T>(lowerLimit) && value < static_cast<T>(higherLimit);
+	}
+
+	inline
+	bool isEqualWithinThreshold(double v1, double v2, double epsilon = 1e-10)
+	{
+		return std::abs(v2 - v1) < epsilon;
 	}
 }
 

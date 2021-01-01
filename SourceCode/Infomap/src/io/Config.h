@@ -3,9 +3,9 @@
  Infomap software package for multi-level network clustering
 
  Copyright (c) 2013, 2014 Daniel Edler, Martin Rosvall
- 
+
  For more information, see <http://www.mapequation.org>
- 
+
 
  This file is part of Infomap software package.
 
@@ -50,15 +50,21 @@ struct Config
 	 	withMemory(false),
 		bipartite(false),
 		skipAdjustBipartiteFlow(false),
+		multiplexAddMissingNodes(false),
 		hardPartitions(false),
 	 	nonBacktracking(false),
 	 	parseWithoutIOStreams(false),
 		zeroBasedNodeNumbers(false),
 		includeSelfLinks(false),
 		ignoreEdgeWeights(false),
+		completeDanglingMemoryNodes(false),
 		nodeLimit(0),
+		weightThreshold(0),
+		preClusterMultiplex(false),
 	 	clusterDataFile(""),
 	 	noInfomap(false),
+	 	undirectedMultilayer(false),
+	 	expandUndirectedToDirected(false),
 	 	twoLevel(false),
 		directed(false),
 		undirdir(false),
@@ -69,24 +75,29 @@ struct Config
 		teleportationProbability(0.15),
 		selfTeleportationProbability(-1),
 		markovTime(1.0),
+		variableMarkovTime(false),
 		preferredNumberOfModules(0),
 		multiplexRelaxRate(-1),
+		multiplexJSRelaxRate(-1),
+		multiplexJSRelaxLimit(-1),
+		multiplexRelaxLimit(-1),
 		seedToRandomNumberGenerator(123),
 		numTrials(1),
 		minimumCodelengthImprovement(1.0e-10),
 		minimumSingleNodeCodelengthImprovement(1.0e-16),
-		randomizeCoreLoopLimit(false),
-		coreLoopLimit(0),
+		randomizeCoreLoopLimit(true),
+		coreLoopLimit(10),
 		levelAggregationLimit(0),
 		tuneIterationLimit(0),
 		minimumRelativeTuneIterationImprovement(1.0e-5),
-		fastCoarseTunePartition(false),
+		fastCoarseTunePartition(true),
 		alternateCoarseTuneLevel(false),
 		coarseTuneLevel(1),
 		fastHierarchicalSolution(0),
 		fastFirstIteration(false),
 		lowMemoryPriority(0),
 		innerParallelization(false),
+		resetConfigBeforeRecursion(false),
 		outDirectory("."),
 		outName(""),
 		originallyUndirected(false),
@@ -97,9 +108,11 @@ struct Config
 		printNodeRanks(false),
 		printFlowNetwork(false),
 		printPajekNetwork(false),
+		printStateNetwork(false),
 		printBinaryTree(false),
 		printBinaryFlowTree(false),
 		printExpanded(false),
+		printAllTrials(false),
 		noFileOutput(false),
 		verbosity(0),
 		verboseNumberPrecision(6),
@@ -107,10 +120,10 @@ struct Config
 		benchmark(false),
 		maxNodeIndexVisible(0),
 		showBiNodes(false),
+		hideBipartiteNodes(false),
 		minBipartiteNodeIndex(0),
 		version(INFOMAP_VERSION)
 	{
-		setOptimizationLevel(1);
 	}
 
 	Config(const Config& other)
@@ -121,15 +134,21 @@ struct Config
 	 	withMemory(other.withMemory),
 		bipartite(other.bipartite),
 		skipAdjustBipartiteFlow(other.skipAdjustBipartiteFlow),
+		multiplexAddMissingNodes(other.multiplexAddMissingNodes),
 		hardPartitions(other.hardPartitions),
 	 	nonBacktracking(other.nonBacktracking),
 	 	parseWithoutIOStreams(other.parseWithoutIOStreams),
 		zeroBasedNodeNumbers(other.zeroBasedNodeNumbers),
 		includeSelfLinks(other.includeSelfLinks),
 		ignoreEdgeWeights(other.ignoreEdgeWeights),
+		completeDanglingMemoryNodes(other.completeDanglingMemoryNodes),
 		nodeLimit(other.nodeLimit),
+		weightThreshold(other.weightThreshold),
+		preClusterMultiplex(other.preClusterMultiplex),
 	 	clusterDataFile(other.clusterDataFile),
 	 	noInfomap(other.noInfomap),
+	 	undirectedMultilayer(other.undirectedMultilayer),
+	 	expandUndirectedToDirected(other.expandUndirectedToDirected),
 	 	twoLevel(other.twoLevel),
 		directed(other.directed),
 		undirdir(other.undirdir),
@@ -140,8 +159,12 @@ struct Config
 		teleportationProbability(other.teleportationProbability),
 		selfTeleportationProbability(other.selfTeleportationProbability),
 		markovTime(other.markovTime),
+		variableMarkovTime(other.variableMarkovTime),
 		preferredNumberOfModules(other.preferredNumberOfModules),
 		multiplexRelaxRate(other.multiplexRelaxRate),
+		multiplexJSRelaxRate(other.multiplexJSRelaxRate),
+		multiplexJSRelaxLimit(other.multiplexJSRelaxLimit),
+		multiplexRelaxLimit(other.multiplexRelaxLimit),
 		seedToRandomNumberGenerator(other.seedToRandomNumberGenerator),
 		numTrials(other.numTrials),
 		minimumCodelengthImprovement(other.minimumCodelengthImprovement),
@@ -158,6 +181,7 @@ struct Config
 		fastFirstIteration(other.fastFirstIteration),
 		lowMemoryPriority(other.lowMemoryPriority),
 		innerParallelization(other.innerParallelization),
+		resetConfigBeforeRecursion(other.resetConfigBeforeRecursion),
 		outDirectory(other.outDirectory),
 		outName(other.outName),
 		originallyUndirected(other.originallyUndirected),
@@ -168,9 +192,11 @@ struct Config
 		printNodeRanks(other.printNodeRanks),
 		printFlowNetwork(other.printFlowNetwork),
 		printPajekNetwork(other.printPajekNetwork),
+		printStateNetwork(other.printStateNetwork),
 		printBinaryTree(other.printBinaryTree),
 		printBinaryFlowTree(other.printBinaryFlowTree),
 		printExpanded(other.printExpanded),
+		printAllTrials(other.printAllTrials),
 		noFileOutput(other.noFileOutput),
 		verbosity(other.verbosity),
 		verboseNumberPrecision(other.verboseNumberPrecision),
@@ -178,6 +204,7 @@ struct Config
 		benchmark(other.benchmark),
 		maxNodeIndexVisible(other.maxNodeIndexVisible),
 		showBiNodes(other.showBiNodes),
+		hideBipartiteNodes(other.hideBipartiteNodes),
 		minBipartiteNodeIndex(other.minBipartiteNodeIndex),
 		startDate(other.startDate),
 		version(other.version)
@@ -193,15 +220,21 @@ struct Config
 	 	withMemory = other.withMemory;
 	 	bipartite = other.bipartite;
 	 	skipAdjustBipartiteFlow = other.skipAdjustBipartiteFlow;
+	 	multiplexAddMissingNodes = other.multiplexAddMissingNodes;
 	 	hardPartitions = other.hardPartitions;
 	 	nonBacktracking = other.nonBacktracking;
 	 	parseWithoutIOStreams = other.parseWithoutIOStreams;
 		zeroBasedNodeNumbers = other.zeroBasedNodeNumbers;
 		includeSelfLinks = other.includeSelfLinks;
 		ignoreEdgeWeights = other.ignoreEdgeWeights;
+		completeDanglingMemoryNodes = other.completeDanglingMemoryNodes;
 		nodeLimit = other.nodeLimit;
+		weightThreshold = other.weightThreshold;
+		preClusterMultiplex = other.preClusterMultiplex;
 	 	clusterDataFile = other.clusterDataFile;
 	 	noInfomap = other.noInfomap;
+	 	undirectedMultilayer = other.undirectedMultilayer;
+	 	expandUndirectedToDirected = other.expandUndirectedToDirected;
 	 	twoLevel = other.twoLevel;
 		directed = other.directed;
 		undirdir = other.undirdir;
@@ -212,8 +245,12 @@ struct Config
 		teleportationProbability = other.teleportationProbability;
 		selfTeleportationProbability = other.selfTeleportationProbability;
 	 	markovTime = other.markovTime;
+	 	variableMarkovTime = other.variableMarkovTime;
 	 	preferredNumberOfModules = other.preferredNumberOfModules;
 		multiplexRelaxRate = other.multiplexRelaxRate;
+		multiplexJSRelaxRate = other.multiplexJSRelaxRate;
+		multiplexJSRelaxLimit = other.multiplexJSRelaxLimit;
+		multiplexRelaxLimit = other.multiplexRelaxLimit;
 		seedToRandomNumberGenerator = other.seedToRandomNumberGenerator;
 		numTrials = other.numTrials;
 		minimumCodelengthImprovement = other.minimumCodelengthImprovement;
@@ -230,6 +267,7 @@ struct Config
 		fastFirstIteration = other.fastFirstIteration;
 		lowMemoryPriority = other.lowMemoryPriority;
 		innerParallelization = other.innerParallelization;
+		resetConfigBeforeRecursion = other.resetConfigBeforeRecursion;
 		outDirectory = other.outDirectory;
 		outName = other.outName;
 		originallyUndirected = other.originallyUndirected;
@@ -240,9 +278,11 @@ struct Config
 		printNodeRanks = other.printNodeRanks;
 		printFlowNetwork = other.printFlowNetwork;
 		printPajekNetwork = other.printPajekNetwork;
+		printStateNetwork = other.printStateNetwork;
 		printBinaryTree = other.printBinaryTree;
 		printBinaryFlowTree = other.printBinaryFlowTree;
 		printExpanded = other.printExpanded;
+		printAllTrials = other.printAllTrials;
 		noFileOutput = other.noFileOutput;
 		verbosity = other.verbosity;
 		verboseNumberPrecision = other.verboseNumberPrecision;
@@ -250,6 +290,7 @@ struct Config
 		benchmark = other.benchmark;
 	 	maxNodeIndexVisible = other.maxNodeIndexVisible;
 	 	showBiNodes = other.showBiNodes;
+	 	hideBipartiteNodes = other.hideBipartiteNodes;
 	 	minBipartiteNodeIndex = other.minBipartiteNodeIndex;
 		startDate = other.startDate;
 		version = other.version;
@@ -314,18 +355,19 @@ struct Config
 			{
 				// Include self-links in multiplex networks as layer and node numbers are unrelated
 				includeSelfLinks = true;
-				if (!isUndirected())
-				{
-					teleportToNodes = true;
-					recordedTeleportation = false;
+				if (isUndirected() && !undirectedMultilayer) {
+					directed = true;
+					expandUndirectedToDirected = true;
 				}
 			}
 			else
 			{
-				teleportToNodes = true;
-				recordedTeleportation = false;
 				if (isUndirected())
 					directed = true;
+			}
+			if (is3gram()) {
+				// Teleport to start of physical chains
+				teleportToNodes = true;
 			}
 		}
 		if (isBipartite())
@@ -334,25 +376,48 @@ struct Config
 		}
 	}
 
+	void reset()
+	{
+		minimumCodelengthImprovement = 1.0e-10;
+		minimumSingleNodeCodelengthImprovement = 1.0e-16;
+		randomizeCoreLoopLimit = false;
+		coreLoopLimit = 0;
+		levelAggregationLimit = 0;
+		tuneIterationLimit = 0;
+		minimumRelativeTuneIterationImprovement = 1.0e-5;
+		fastCoarseTunePartition = false;
+		alternateCoarseTuneLevel = false;
+		coarseTuneLevel = 1;
+		fastHierarchicalSolution = 0;
+		fastFirstIteration = false;
+		lowMemoryPriority = 0;
+		innerParallelization = false;
+	}
+
+	bool isOriginallyUndirected() const { return originallyUndirected; }
+
 	bool isUndirected() const { return !directed && !undirdir && !outdirdir && !rawdir; }
+
+	void setUndirected() { directed = undirdir = outdirdir = rawdir = false; }
 
 	bool isUndirectedFlow() const { return !directed && !outdirdir && !rawdir; } // isUndirected() || undirdir
 
-	bool printAsUndirected() const { return originallyUndirected; }
+	bool printAsUndirected() const { return originallyUndirected && !expandUndirectedToDirected; }
 
 	bool parseAsUndirected() const { return originallyUndirected; }
 
 	bool useTeleportation() const { return 	directed; }
 
-	bool isMemoryInput() const { return inputFormat == "3gram" || inputFormat == "multiplex" || additionalInput.size() > 0; }
+	bool is3gram() const { return inputFormat == "3gram"; }
+	bool isMultiplexNetwork() const { return inputFormat == "multilayer" || inputFormat == "multiplex" || additionalInput.size() > 0; }
+	bool isStateNetwork() const { return inputFormat == "states"; }
+	bool isBipartite() const { return inputFormat == "bipartite"; }
+
+	bool isMemoryInput() const { return isStateNetwork() || is3gram() || isMultiplexNetwork(); }
 
 	bool isMemoryNetwork() const { return withMemory || nonBacktracking || isMemoryInput(); }
 
 	bool isSimulatedMemoryNetwork() const { return (withMemory || nonBacktracking) && !isMemoryInput(); }
-
-	bool isMultiplexNetwork() const { return inputFormat == "multiplex" || additionalInput.size() > 0; }
-
-	bool isBipartite() const { return inputFormat == "bipartite"; }
 
 	bool haveOutput() const
 	{
@@ -380,15 +445,21 @@ struct Config
 	bool withMemory;
 	bool bipartite;
 	bool skipAdjustBipartiteFlow;
+	bool multiplexAddMissingNodes;
 	bool hardPartitions;
 	bool nonBacktracking;
 	bool parseWithoutIOStreams;
 	bool zeroBasedNodeNumbers;
 	bool includeSelfLinks;
 	bool ignoreEdgeWeights;
+	bool completeDanglingMemoryNodes;
 	unsigned int nodeLimit;
+	double weightThreshold;
+	bool preClusterMultiplex;
 	std::string clusterDataFile;
 	bool noInfomap;
+	bool undirectedMultilayer;
+	bool expandUndirectedToDirected;
 
 	// Core algorithm
 	bool twoLevel;
@@ -401,8 +472,12 @@ struct Config
 	double teleportationProbability;
 	double selfTeleportationProbability;
 	double markovTime;
+	bool variableMarkovTime;
 	unsigned int preferredNumberOfModules;
 	double multiplexRelaxRate;
+	double multiplexJSRelaxRate;
+	double multiplexJSRelaxLimit;
+	int multiplexRelaxLimit;
 	unsigned long seedToRandomNumberGenerator;
 
 	// Performance and accuracy
@@ -421,6 +496,7 @@ struct Config
 	bool fastFirstIteration;
 	unsigned int lowMemoryPriority; // Prioritize memory efficient algorithms before fast if > 0
 	bool innerParallelization;
+	bool resetConfigBeforeRecursion; // If true, flags only affect building up super modules.
 
 	// Output
 	std::string outDirectory;
@@ -433,9 +509,11 @@ struct Config
 	bool printNodeRanks;
 	bool printFlowNetwork;
 	bool printPajekNetwork;
+	bool printStateNetwork;
 	bool printBinaryTree;
 	bool printBinaryFlowTree; // tree including horizontal links (hierarchical network)
 	bool printExpanded; // Print the expanded network of memory nodes if possible
+	bool printAllTrials; // Print output on all trials with the trial index appended to filename
 	bool noFileOutput;
 	unsigned int verbosity;
 	unsigned int verboseNumberPrecision;
@@ -444,6 +522,7 @@ struct Config
 
 	unsigned int maxNodeIndexVisible;
 	bool showBiNodes;
+	bool hideBipartiteNodes;
 	unsigned int minBipartiteNodeIndex;
 
 	// Other

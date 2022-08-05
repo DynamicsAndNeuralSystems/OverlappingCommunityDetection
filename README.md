@@ -3,9 +3,11 @@
 These modules are separated into the computation and visualization modules, where computation does all the calculations, and visualization allows you to view the results and compare them.
 
 ## Compilation
+
 In the `SourceCode` directory, some algorithms need to be compiled for your system (from the terminal).
 
 #### OSLOM (C)
+
 In `SourceCode/OSLOM`:
 
 ```shell
@@ -19,16 +21,16 @@ In `SourceCode/OSLOM`:
 `Computation` computes a range of community-detection algorithms on a given network, as:
 
 ```matlab
-Final = Computation(Input, Methods, isBenchmark, benchFileName)
+Final = Computation(Input,Methods,isBenchmark,benchFileName);
 ```
 
 Where:
 
-* `Final` -	The outputted structure, which contains all data from the algorithms (Method name, community result)
-* `Input` -	Can be an adjacency matrix, matrix list of undirected links, or matrix list of directed links
-* `Methods` -	Cells of the names of methods to be computed. *Default is Jerry and Shen methods*
-* `isBenchmark` -	0 for no benchmark, 1 for benchmark. *Default is 0*
-* `benchFileName` - String name of the text file within which the benchmark communities are defined
+- `Final` -	The outputted structure, which contains all data from the algorithms (Method name, community result)
+- `Input` -	Can be an adjacency matrix, matrix list of undirected links, or matrix list of directed links
+- `Methods` -	Cells of the names of methods to be computed. _Default is Jerry and Shen methods_
+- `isBenchmark` -	0 for no benchmark, 1 for benchmark. _Default is 0_
+- `benchFileName` - String name of the text file within which the benchmark communities are defined
 
 Results are saved to `Computation_Result.mat`, which can be visualized using code in the Visualization module.
 
@@ -37,10 +39,10 @@ Results are saved to `Computation_Result.mat`, which can be visualized using cod
 Each community detection method has its own directory within the `Computation_Module` directory.
 Each directory, `MethodName`, contains 3 files -
 
-* `call_[MethodName]` - This function is called by the overarching `computation.m` function. It simplifies the entire process down to one line.
-* `run_[MethodName]` - This function is called to do the actual calculations; running the algorithm and spitting out its output (Note: If calculations need to be hard coded to specific directories, this is done within this `.m` file.
+- `call_[MethodName]` - This function is called by the overarching `computation.m` function. It simplifies the entire process down to one line.
+- `run_[MethodName]` - This function is called to do the actual calculations; running the algorithm and spitting out its output (Note: If calculations need to be hard coded to specific directories, this is done within this `.m` file.
   For examples, view `run_Gopalan`).
-* `process_[MethodName]` - Called after running the algorithm, as this function will take the algorithm output and convert it to the universal matrix format, explained below.
+- `process_[MethodName]` - Called after running the algorithm, as this function will take the algorithm output and convert it to the universal matrix format, explained below.
 
 In addition, source code for each algorithm is in a directory in the `SourceCode` directory.
 And scripts for converting between the three types of inputs are in `Conversions`.
@@ -67,7 +69,7 @@ If you wish to add a module, here is how to do so:
 
 ### Usage/Syntax:
 
-```
+```matlab
 Visualization(Methods)
 ```
 
@@ -76,14 +78,14 @@ If benchmark exists, and you want to visualize it as well, then include `'Benchm
 
 ### File Structure
 
-* `Visualization` - This function is the overarching code that plots the network, as well as communities to compare their results.
-* `Node_Reorder` - This moves the labeling of communities to the largest being number 1.
+- `Visualization` - This function is the overarching code that plots the network, as well as communities to compare their results.
+- `Node_Reorder` - This moves the labeling of communities to the largest being number 1.
   This allows for a somewhat easier view of the communities, as the colours within the visualiser depend on the labels.
-* `Node_Sorter` - This reorders the nodes according to the benchmark (so that communities are easier to see).
+- `Node_Sorter` - This reorders the nodes according to the benchmark (so that communities are easier to see).
 
 Unused code (so far)
 
-* `NMI_calc` - Given two community results, will spit out a number between 0 and 1 (NMI calculation).
+- `NMI_calc` - Given two community results, will spit out a number between 0 and 1 (NMI calculation).
   Does not work with overlapping communities.
-* `ENMI_calc` & `extendNMI_calcs` are functions for calculating the NMI for overlapping communities.
-  To use, just input the two community matrices into `ENMI_calc`
+- `ENMI_calc` & `extendNMI_calcs` are functions for calculating the NMI for overlapping communities.
+To use, just input the two community matrices into `ENMI_calc`

@@ -1,4 +1,4 @@
-function Plot = Visualisation(Methods)
+function Plot = Visualization(Methods)
 % Visualises results of the Computation Module
 % Assumes Computation_Result.mat exists in the Matlab path
 %-------------------------------------------------------------------------------
@@ -25,7 +25,9 @@ fig_h.Position = [1, 26, 1536, 703];
 I = Node_Sorter(Final.Benchmark.Result); % Sorts the nodes into communities
 disp('Nodes have been sorted into communities');
 
+%-------------------------------------------------------------------------------
 %% Initial matrix view
+%-------------------------------------------------------------------------------
 full_Matrix = Final.Network/max(max(Final.Network)); % Normalises the data for plotting
 full_Matrix = full_Matrix(I, I); % Moves the nodes to their sorted locations
 full_Matrix(full_Matrix == 0) = NaN; % Turns the 0s to NaNs for easy plotting
@@ -43,7 +45,7 @@ for Vis_name = Methods
     for i = 1:length(temp)
         if strcmp(Final.(temp{i}).Name, Vis_name{1}) % - If the names match
             % Add blank space for the plot
-            full_Matrix = [full_Matrix NaN(size(full_Matrix, 1), Width)];
+            full_Matrix = [full_Matrix, NaN(size(full_Matrix, 1), Width)];
             % Saves the full name of the method within the "Final"
             % structure
             methodNames{end+1} = temp{i};
@@ -53,14 +55,17 @@ end
 
 disp('Found all results pertaining to the input.');
 
+%-------------------------------------------------------------------------------
 %% Figure options
+%-------------------------------------------------------------------------------
 Plot = imagesc(full_Matrix); hold on
 set(gca, 'color', [0 0 0], 'CLim', [0 1]); % Sets background colour to black
 set(Plot, 'alphadata',~isnan(full_Matrix)); % Turns all NaN values into transparent colours
 colorbar('location', 'eastoutside'); % Shows a colour bar
 
-
+%-------------------------------------------------------------------------------
 %% Plotting rectangles and lines
+%-------------------------------------------------------------------------------
 for name = methodNames
     % Plots a starting line, so that algorithms can be separated
     plot([StartPos, StartPos], [0, numNodes + 1], 'k');
@@ -101,7 +106,7 @@ end
 
 %% Labelling
 XTickLabel = size(full_Matrix, 1)+0.5; % Kickstarts the for loop
-for i = 1: size(methodNames, 2)
+for i = 1:size(methodNames,2)
     XTickLabel = [XTickLabel, XTickLabel(end)+Width]; % Finds all the labels needed
 end
 set(gca, 'XTick', XTickLabel+Width/2); % Sets the axis ticks to these values

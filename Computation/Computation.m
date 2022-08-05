@@ -1,4 +1,4 @@
-function Final = Computation(adjMatrix, methodList, isBenchmark, benchmarkFileName)
+function Final = Computation(adjMatrix,methodList,isBenchmark,benchmarkFileName)
 % Computes a set of (overlapping) community-detection algorithms for a given input network
 %
 %---INPUTS:
@@ -6,7 +6,7 @@ function Final = Computation(adjMatrix, methodList, isBenchmark, benchmarkFileNa
 % methodList: cell of strings labeling the methods to be evaluated
 % isBenchmark: set true for a benchmark network
 % benchmarkFileName: name of a text file containing benchmark node annotations
-% 
+%
 %%---IMPORTANT NOTE:
 % Before running this program, there are a few libraries that need to be
 % loaded:
@@ -61,7 +61,6 @@ elseif size(adjMatrix,2)==3 % List format
 else
     error('Error: Input adjacency matrix is not one of the accepted formats');
 end
-keyboard
 
 % So now we have 3 representations of the same object:
 % Mat: adjacency matrix (full)
@@ -76,7 +75,9 @@ keyboard
 Final = struct('Date', date);
 Final.Network = Mat; % Saves the matrix of the network
 
+%-------------------------------------------------------------------------------
 %% Benchmark
+%-------------------------------------------------------------------------------
 if isBenchmark
     % Processes the data from the benchmark
     BenchComm = process_Benchmark(benchmarkFileName,numNodes);
@@ -85,9 +86,11 @@ if isBenchmark
     Final.Benchmark = struct('Name','Benchmark','Result',BenchComm);
 end
 
+%-------------------------------------------------------------------------------
 %% Running Functions
+%-------------------------------------------------------------------------------
 numMethods = length(methodList);
-fprintf(1,'Looping across %u OCDA methods\n',numMethods);
+fprintf(1,'Looping across %u OCDA methods.\n',numMethods);
 for m = 1:numMethods
     theMethod = methodList{m};
     switch theMethod
@@ -120,9 +123,11 @@ for m = 1:numMethods
     end
 end
 
+%-------------------------------------------------------------------------------
 %% Saving data
+%-------------------------------------------------------------------------------
 fileName = 'Computation_Result.mat';
 save(fileName, 'Final');
-fprintf('All computation is complete! Saved as %s\n',fileName);
+fprintf('All computation is complete! Saved as %s.\n',fileName);
 
 end

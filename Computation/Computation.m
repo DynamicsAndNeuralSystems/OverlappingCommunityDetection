@@ -96,30 +96,35 @@ for m = 1:numMethods
     switch theMethod
         case 'Clauset'
             Final.Clauset = call_Clauset(DirList, numNodes);
+        case 'Infomap'
+            Final.Infomap = call_infomap(DirList, numNodes);
         case 'Gopalan'
             for prec = [0 0.1 0.2 0.3]
                 Final.(sprintf('Gopalan_prec_%g', prec*100)) = ...
                     call_Gopalan(Undir, numNodes, 1000, prec);
             end
-        case 'Jerry'
-            Final.Jerry = call_Jerry(Mat, numNodes, 120, 0.09, 1, 'probabilistic');
+        case 'SLPA'
+            Final.SLPA = call_Jerry(Mat, numNodes, 120, 0.09, 1, 'probabilistic');
         case 'Link'
             for prec = [0,0.01,0.1]
                 Final.(sprintf('Link_prec_%g', prec*100)) = ...
                     call_Link(Undir, numNodes, prec);
             end
         case 'NNMF'
-            for thresh = [0,0.01,0.1]
-                Final.(sprintf('NNMF_thresh_%g', thresh*100)) = ...
+            for thresh = [0.1,0.2,0.3,0.4]
+                Final.(sprintf('NNMF_%g', thresh*100)) = ...
                     call_NNMF(Mat, thresh);
             end
         case 'OSLOM'
             for tol = 0.1:0.1:1
-                Final.(sprintf('OSLOM_thresh_%g', tol*100)) = ...
+                Final.(sprintf('OSLOM_%g', tol*100)) = ...
                     call_OSLOM(Undir, numNodes, 100, tol);
             end
-        case 'Shen'
-            Final.Shen = call_Shen(Mat, numNodes, 7, 1.3, 0);
+        case 'Clique'
+            for clique_size = [3,5,7,9]
+                Final.(sprintf('Clique_%g', clique_size)) = ...
+                    call_Shen(Mat, numNodes, clique_size, 1.3, 0);
+            end
     end
 end
 

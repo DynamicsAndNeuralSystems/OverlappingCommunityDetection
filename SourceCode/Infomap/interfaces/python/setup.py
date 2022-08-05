@@ -5,6 +5,8 @@ setup.py file for compiling Infomap module
 """
 
 from distutils.core import setup, Extension
+from distutils.file_util import copy_file
+import sysconfig
 import fnmatch
 import os
 import re
@@ -25,7 +27,7 @@ with open(os.path.join('src', 'io', 'version.cpp')) as f:
 
 infomap_module = Extension('_infomap',
     sources=cppSources,
-    extra_compile_args=['-DAS_LIB']
+    extra_compile_args=['-DAS_LIB', '-Wno-deprecated-declarations']
     )
 
 setup (name = 'infomap',
@@ -36,3 +38,10 @@ setup (name = 'infomap',
     ext_modules = [infomap_module],
     py_modules = ["infomap"],
     )
+
+# Clean ABI Version Tagged .so Files
+ext_suffix = sysconfig.get_config_var('EXT_SUFFIX')
+if ext_suffix is None:
+    ext_suffix = sysconfig.get_config_var('SO')
+if ext_suffix is not None:
+    copy_file('_infomap{}'.format(ext_suffix), '_infomap.so')

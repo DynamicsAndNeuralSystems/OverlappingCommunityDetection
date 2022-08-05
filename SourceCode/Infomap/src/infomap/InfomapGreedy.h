@@ -3,9 +3,9 @@
  Infomap software package for multi-level network clustering
 
  Copyright (c) 2013, 2014 Daniel Edler, Martin Rosvall
- 
+
  For more information, see <http://www.mapequation.org>
- 
+
 
  This file is part of Infomap software package.
 
@@ -69,6 +69,21 @@ public:
 
 	InfomapGreedy(const Config& conf, NodeFactoryBase* nodeFactory)
 	:	InfomapBase(conf, nodeFactory),
+	 	nodeFlow_log_nodeFlow(0.0),
+		flow_log_flow(0.0),
+		exit_log_exit(0.0),
+		enter_log_enter(0.0),
+		enterFlow(0.0),
+		enterFlow_log_enterFlow(0.0),
+	 	exitNetworkFlow(0.0),
+	 	exitNetworkFlow_log_exitNetworkFlow(0.0)
+	{
+		FlowType& rootData = getNode(*root()).data;
+		rootData.flow = 1.0;
+		rootData.exitFlow = 0.0;
+	}
+	InfomapGreedy(const InfomapBase& infomap, NodeFactoryBase* nodeFactory)
+	:	InfomapBase(infomap, nodeFactory),
 	 	nodeFlow_log_nodeFlow(0.0),
 		flow_log_flow(0.0),
 		exit_log_exit(0.0),
@@ -245,7 +260,15 @@ void InfomapGreedy<InfomapImplementation>::buildHierarchicalNetworkHelper(Hierar
 		const NodeType& node = getNode(*childIt);
 		if (node.isLeaf())
 		{
-			hierarchicalNetwork.addLeafNode(parent, node.data.flow, node.data.exitFlow, leafNodeNames[node.originalIndex], node.originalIndex);
+			if (m_config.isMemoryNetwork()) {
+				const StateNode& stateNode = getMemoryNode(*childIt);
+				hierarchicalNetwork.addLeafNode(parent, node.data.flow, node.data.exitFlow, leafNodeNames[node.originalIndex],
+						node.originalIndex, node.originalIndex, true, stateNode.stateIndex, stateNode.physIndex);
+
+			}
+			else
+				hierarchicalNetwork.addLeafNode(parent, node.data.flow, node.data.exitFlow, leafNodeNames[node.originalIndex],
+				node.originalIndex, node.originalIndex, false, 0, node.originalIndex);
 		}
 		else
 		{

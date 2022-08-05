@@ -87,5 +87,7 @@ Unused code (so far)
 
 - `NMI_calc` - Given two community results, will spit out a number between 0 and 1 (NMI calculation).
   Does not work with overlapping communities.
-- `ENMI_calc` & `extendNMI_calcs` are functions for calculating the NMI for overlapping communities.
-To use, just input the two community matrices into `ENMI_calc`
+* `ENMI_calc` & `extendNMI_calcs` are functions for calculating the NMI for overlapping communities.
+  To use, just input the two community matrices into `ENMI_calc`
+* `F1_overlapcalc` extracts the set of overlapping nodes from two overlapping community structures and computes their F1 score using F1_calc.
+  To use, input the two community structures into F1_overlapcalc.

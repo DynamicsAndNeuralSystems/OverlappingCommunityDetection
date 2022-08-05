@@ -26,49 +26,29 @@
 
 #include <iostream>
 #include <sstream>
-#include <vector>
 #include <string>
 
 #include <Infomap.h>
-#include <Infomap/MultiplexNetwork.h>
 
-using std::vector;
 using std::string;
 
-void parseM2ClusterInfo(std::string line, int &n1, int &n2){
-	std::istringstream m_extractor;
-	m_extractor.clear();
-    m_extractor.str(line);
-    std::string tmpString;
-    if (!(m_extractor >> n1 >> tmpString >> n2)) {
-        std::cout << "error" << std::endl;
-    }
-}
-
 void printClusters(infomap::HierarchicalNetwork & tree) {
-	int n1, n2;
     std::cout << "\nClusters:\n#layer node clusterIndex:\n";
     for (infomap::LeafIterator leafIt(&tree.getRootNode()); !leafIt.isEnd(); ++leafIt) {
-    	parseM2ClusterInfo(leafIt->data.name, n1, n2);
-        std::cout << n1 << " " << n2 << " " << leafIt->parentNode->parentIndex << '\n';
+        std::cout << leafIt->stateIndex << " " << leafIt->physIndex << " " << leafIt.moduleIndex() << '\n';
     }
 }
 
 int main(int argc, char** argv)
 {
-	infomap::Config config = infomap::init("--two-level -imultiplex -N2 --expanded");
+	infomap::MemInfomap infomapWrapper("--two-level -N2 --expanded");
 
-	infomap::MultiplexNetwork network(config);
+	// from (layer physical) to (layer physical) weight
+	infomapWrapper.addMultiplexLink(2, 1, 1, 2, 1.0);
+	infomapWrapper.addMultiplexLink(1, 2, 2, 1, 1.0);
+	infomapWrapper.addMultiplexLink(3, 2, 2, 3, 1.0);
 
-	network.addM2Link(2, 1, 1, 2, 1.0);
-	network.addM2Link(1, 2, 2, 1, 1.0);
-	network.addM2Link(3, 2, 2, 3, 1.0);
+	infomapWrapper.run();
 
-	network.finalizeAndCheckNetwork();
-
-	infomap::HierarchicalNetwork resultNetwork(config);
-
-	infomap::run(network, resultNetwork);
-
-	printClusters(resultNetwork);
+	printClusters(infomapWrapper.tree);
 }

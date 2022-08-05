@@ -16,29 +16,25 @@ def findCommunities(G):
 	Partition network with the Infomap algorithm.
 	Annotates nodes with 'community' id and return number of communities found.
 	"""
-	conf = infomap.init("--two-level");
-	# Input data
-	network = infomap.Network(conf);
-	# Output data
-	tree = infomap.HierarchicalNetwork(conf)
+	
+	infomapWrapper = infomap.Infomap("--two-level")
 
-	print "Building network..."
-	for e in G.edges_iter():
-		network.addLink(*e)
+	print("Building Infomap network from a NetworkX graph...")
+	for e in G.edges():
+		infomapWrapper.addLink(*e)
 
-	network.finalizeAndCheckNetwork(True, nx.number_of_nodes(G));
+	print("Find communities with Infomap...")
+	infomapWrapper.run();
 
-	# Cluster network
-	infomap.run(network, tree);
+	tree = infomapWrapper.tree
 
-	print "Found %d top modules with codelength: %f" % (tree.numTopModules(), tree.codelength())
+	print("Found %d top modules with codelength: %f" % (tree.numTopModules(), tree.codelength()))
 
 	communities = {}
-	clusterIndexLevel = 1 # 1, 2, ... or -1 for top, second, ... or lowest cluster level
-	for node in tree.leafIter(clusterIndexLevel):
-		communities[node.originalLeafIndex] = node.clusterIndex()
+	for node in tree.leafIter():
+		communities[node.originalLeafIndex] = node.moduleIndex()
 
-	nx.set_node_attributes(G, 'community', communities)
+	nx.set_node_attributes(G, name='community', values=communities)
 	return tree.numTopModules()
 
 
@@ -66,7 +62,7 @@ def drawNetwork(G):
 	nodeCollection.set_edgecolor(darkColors)
 
 	# Print node labels separately instead
-	for n in G.nodes_iter():
+	for n in G.nodes():
 		plt.annotate(n,
 			xy = pos[n],
 			textcoords = 'offset points',
@@ -83,8 +79,6 @@ def drawNetwork(G):
 
 G=nx.karate_club_graph()
 
-numCommunities = findCommunities(G)
-
-print "Number of communities found:", numCommunities
+findCommunities(G)
 
 drawNetwork(G)

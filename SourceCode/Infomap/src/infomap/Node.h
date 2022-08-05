@@ -3,9 +3,9 @@
  Infomap software package for multi-level network clustering
 
  Copyright (c) 2013, 2014 Daniel Edler, Martin Rosvall
- 
+
  For more information, see <http://www.mapequation.org>
- 
+
 
  This file is part of Infomap software package.
 
@@ -51,6 +51,82 @@ struct SubStructure
 	std::auto_ptr<InfomapBase> subInfomap;
 	bool haveSubInfomapInstance() { return subInfomap.get() != 0; }
 	bool exploredWithoutImprovement;
+};
+
+struct StateNode
+{
+	unsigned int stateIndex;
+	unsigned int physIndex;
+	double weight;
+	StateNode() :
+		stateIndex(0), physIndex(0), weight(0.0)
+	{}
+	StateNode(unsigned int physIndex) :
+		stateIndex(0), physIndex(physIndex), weight(0.0)
+	{}
+	StateNode(unsigned int stateIndex, unsigned int physIndex, double weight = 0.0) :
+		stateIndex(stateIndex), physIndex(physIndex), weight(weight)
+	{}
+	StateNode(const StateNode& other) :
+		stateIndex(other.stateIndex), physIndex(other.physIndex), weight(other.weight)
+	{}
+	StateNode& operator=(const StateNode& other)
+	{
+		stateIndex = other.stateIndex;
+		physIndex = other.physIndex;
+		weight = other.weight;
+		return *this;
+	}
+
+	unsigned int getPriorState() const
+	{
+		return stateIndex;
+	}
+
+	unsigned int layer() const
+	{
+		return stateIndex;
+	}
+
+	void subtractIndexOffset(unsigned int indexOffset)
+	{
+		stateIndex -= indexOffset;
+		physIndex -= indexOffset;
+	}
+
+	bool operator<(StateNode other) const
+	{
+		return stateIndex == other.stateIndex ? physIndex < other.physIndex : stateIndex < other.stateIndex;
+	}
+
+	bool operator==(StateNode other) const
+	{
+		return stateIndex == other.stateIndex && physIndex == other.physIndex;
+	}
+
+	bool operator!=(StateNode other) const
+	{
+		return stateIndex != other.stateIndex || physIndex != other.physIndex;
+	}
+
+	friend std::ostream& operator<<(std::ostream& out, const StateNode& node)
+	{
+		return out << "(" << node.stateIndex << "-" << node.physIndex << ")";
+	}
+
+	std::string print(unsigned int indexOffset = 0) const
+	{
+		std::ostringstream out;
+		out << stateIndex + indexOffset << " " << physIndex + indexOffset;
+		return out.str();
+	}
+
+	std::string print(const std::vector<std::string>& names, unsigned int indexOffset = 0) const
+	{
+		std::ostringstream out;
+		out << stateIndex + indexOffset << " " << names.at(physIndex);
+		return out.str();
+	}
 };
 
 class NodeBase
@@ -141,7 +217,7 @@ public:
 	unsigned int childDegree() const;
 
 	bool isLeaf() const;
-	bool isLeafModule() const;
+	bool isDirectLeafModule() const;
 	bool isRoot() const;
 
 	unsigned int numLeafMembers()
@@ -170,6 +246,10 @@ public:
 
 	const SubStructure& getSubStructure() const
 	{ return m_subStructure; }
+
+	const NodeBase* getSubInfomapRoot() const;
+
+	NodeBase* getSubInfomapRoot();
 
 	// ---------------------------- Order ----------------------------
 	bool isFirst() const
@@ -265,6 +345,16 @@ public:
 //		m_subStructure.subInfomap = subInfomap;
 //	}
 
+	// Dummy node for non-memory nodes
+	virtual StateNode getStateNode()
+	{
+		return StateNode();
+	}
+
+	virtual unsigned int getPhysicalIndex()
+	{
+		return originalIndex;
+	}
 
 private:
 	void calcChildDegree();
@@ -280,6 +370,7 @@ public:
 	NodeBase* next; // sibling
 	NodeBase* firstChild;
 	NodeBase* lastChild;
+	NodeBase* owner; // Infomap owner (if this is an Infomap root)
 	double codelength; //TODO: Better design for hierarchical stuff!?
 	bool dirty;
 
@@ -306,10 +397,19 @@ bool NodeBase::isLeaf() const
 }
 
 inline
-bool NodeBase::isLeafModule() const
+bool NodeBase::isDirectLeafModule() const
 {
+	// const_pre_depth_first_iterator it(this);
+	// return it.isDirectLeafModule();
 	return firstChild != 0 && firstChild->firstChild == 0;
 }
+
+// inline
+// bool NodeBase::isLeafModule() const
+// {
+// 	const_pre_depth_first_iterator it(this);
+// 	return it.isDirectLeafModule();
+// }
 
 inline
 bool NodeBase::isRoot() const
@@ -539,6 +639,8 @@ public:
 	{}
 	Node(const node_type& other) : NodeBase(), data(other.data)
 	{}
+	virtual ~Node()
+	{}
 
 	friend std::ostream& operator<<(std::ostream& out, const node_type& node)
 	{
@@ -557,50 +659,14 @@ public:
 
 struct PhysData
 {
-	PhysData(unsigned int physNodeIndex, double sumFlowFromM2Node = 0.0)
-	: physNodeIndex(physNodeIndex), sumFlowFromM2Node(sumFlowFromM2Node)
+	PhysData(unsigned int physNodeIndex, double sumFlowFromStateNode = 0.0)
+	: physNodeIndex(physNodeIndex), sumFlowFromStateNode(sumFlowFromStateNode)
 	{}
-	PhysData(const PhysData& other) : physNodeIndex(other.physNodeIndex), sumFlowFromM2Node(other.sumFlowFromM2Node) {}
+	PhysData(const PhysData& other) : physNodeIndex(other.physNodeIndex), sumFlowFromStateNode(other.sumFlowFromStateNode) {}
 	unsigned int physNodeIndex;
-	double sumFlowFromM2Node; // The amount of flow from the memory node in this physical node
+	double sumFlowFromStateNode; // The amount of flow from the memory node in this physical node
 };
 
-
-
-struct M2Node
-{
-	unsigned int priorState;
-	unsigned int physIndex;
-	M2Node() :
-		priorState(0), physIndex(0)
-	{}
-	M2Node(unsigned int priorState, unsigned int physIndex) :
-		priorState(priorState), physIndex(physIndex)
-	{}
-	M2Node(const M2Node& other) :
-		priorState(other.priorState), physIndex(other.physIndex)
-	{}
-
-	bool operator<(M2Node other) const
-	{
-		return priorState == other.priorState ? physIndex < other.physIndex : priorState < other.priorState;
-	}
-
-	bool operator==(M2Node other) const
-	{
-		return priorState == other.priorState && physIndex == other.physIndex;
-	}
-
-	bool operator!=(M2Node other) const
-	{
-		return priorState != other.priorState || physIndex != other.physIndex;
-	}
-
-	friend std::ostream& operator<<(std::ostream& out, const M2Node& node)
-	{
-		return out << "(" << node.priorState << "-" << node.physIndex << ")";
-	}
-};
 
 template <typename T>
 class MemNode : public Node<T>
@@ -617,15 +683,28 @@ public:
 	{}
 	MemNode(T data) : node_base_type(data)
 	{}
-	MemNode(const node_type& other) : node_base_type(other.data), m2Node(other.m2Node), physicalNodes(other.physicalNodes)
+	MemNode(const node_type& other) : node_base_type(other.data), stateNode(other.stateNode), physicalNodes(other.physicalNodes)
+	{}
+
+	virtual ~MemNode()
 	{}
 
 	friend std::ostream& operator<<(std::ostream& out, const node_type& node)
 	{
-		return out << "(name: " << node.name << ", flow: " << node.data.flow << ", phys: " << node.m2Node << ")";
+		return out << "(name: " << node.name << ", flow: " << node.data.flow << ", phys: " << node.stateNode << ")";
 	}
 
-	M2Node m2Node;
+	virtual StateNode getStateNode()
+	{
+		return stateNode;
+	}
+
+	virtual unsigned int getPhysicalIndex()
+	{
+		return stateNode.physIndex;
+	}
+
+	StateNode stateNode;
 
 	std::vector<PhysData> physicalNodes;
 };

@@ -3,9 +3,9 @@
  Infomap software package for multi-level network clustering
 
  Copyright (c) 2013, 2014 Daniel Edler, Martin Rosvall
- 
+
  For more information, see <http://www.mapequation.org>
- 
+
 
  This file is part of Infomap software package.
 
@@ -33,11 +33,19 @@
 #include <omp.h>
 #include <stdio.h>
 #endif
+#include <limits>
 
 #ifdef NS_INFOMAP
 namespace infomap
 {
 #endif
+
+
+struct CompNodePair {
+	bool operator() (const std::pair<NodeBase*, NodeBase*>& first, const std::pair<NodeBase*, NodeBase*>& second) const {
+		return first.first->index == second.first->index ? (first.second->index < second.second->index) : (first.first->index < second.first->index);
+	}
+};
 
 template<typename InfomapGreedyDerivedType>
 class InfomapGreedyCommon : public InfomapGreedySpecialized<typename derived_traits<InfomapGreedyDerivedType>::flow_type>
@@ -55,6 +63,10 @@ public:
 
 	InfomapGreedyCommon(const Config& conf, NodeFactoryBase* nodeFactory) :
 		InfomapGreedySpecialized<FlowType>(conf, nodeFactory),
+		m_coreLoopCount(0)
+		{}
+	InfomapGreedyCommon(const InfomapBase& infomap, NodeFactoryBase* nodeFactory) :
+		InfomapGreedySpecialized<FlowType>(infomap, nodeFactory),
 		m_coreLoopCount(0)
 		{}
 	virtual ~InfomapGreedyCommon() {}
@@ -118,7 +130,7 @@ template<typename InfomapGreedyDerivedType>
 inline
 std::auto_ptr<InfomapBase> InfomapGreedyCommon<InfomapGreedyDerivedType>::getNewInfomapInstance()
 {
-	return std::auto_ptr<InfomapBase>(new InfomapGreedyDerivedType(Super::m_config));
+	return std::auto_ptr<InfomapBase>(new InfomapGreedyDerivedType(*this));
 }
 
 template<typename InfomapGreedyDerivedType>
@@ -216,7 +228,7 @@ inline double InfomapGreedyCommon<InfomapGreedyDerivedType>::calcCodelengthOnAll
 		NodeBase& node = *it;
 		if (node.isLeaf())
 			node.codelength = 0.0;
-		else if (node.isLeafModule())
+		else if (node.isDirectLeafModule())
 			node.codelength = calcCodelengthOnModuleOfLeafNodes(node);
 		else
 			node.codelength = calcCodelengthOnModuleOfModules(node);
@@ -356,8 +368,9 @@ unsigned int InfomapGreedyCommon<InfomapGreedyDerivedType>::optimizeModules()
 	m_coreLoopCount = 0;
 	double oldCodelength = Super::codelength;
 	unsigned int loopLimit = Super::m_config.coreLoopLimit;
-	if (Super::m_config.coreLoopLimit > 0 && Super::m_config.randomizeCoreLoopLimit)
-		loopLimit = static_cast<unsigned int>(Super::m_rand() * Super::m_config.coreLoopLimit) + 1;
+	unsigned int minRandLoop = 2;
+	if (loopLimit >= minRandLoop && Super::m_config.randomizeCoreLoopLimit)
+		loopLimit = static_cast<unsigned int>(Super::m_rand() * (loopLimit - minRandLoop)) + minRandLoop;
 	unsigned int loopLimitOnAggregationLevels = 20;
 
 	// Iterate while the optimization loop moves some nodes within the dynamic modular structure
@@ -382,8 +395,9 @@ unsigned int InfomapGreedyCommon<InfomapGreedyDerivedType>::optimizeModulesCrude
 	m_coreLoopCount = 0;
 	// double oldCodelength = Super::codelength;
 	unsigned int loopLimit = Super::m_config.coreLoopLimit;
-	if (Super::m_config.coreLoopLimit > 0 && Super::m_config.randomizeCoreLoopLimit)
-		loopLimit = static_cast<unsigned int>(Super::m_rand() * Super::m_config.coreLoopLimit) + 1;
+	unsigned int minRandLoop = 3;
+	if (loopLimit >= minRandLoop && Super::m_config.randomizeCoreLoopLimit)
+		loopLimit = static_cast<unsigned int>(Super::m_rand() * (loopLimit - minRandLoop)) + minRandLoop;
 	// unsigned int loopLimitOnAggregationLevels = -1;
 	unsigned int numMoved = 0;
 
@@ -440,7 +454,7 @@ unsigned int InfomapGreedyCommon<InfomapGreedyDerivedType>::tryMoveEachNodeIntoB
 			continue;
 
 		// Don't move out from previous merge on first loop
-		if (Super::m_moduleMembers[current.index] > 1 && Super::isFirstLoop())
+		if (Super::m_moduleMembers[current.index] > 1 && Super::isFirstLoop() && m_config.tuneIterationLimit != 1)
 			continue;
 
 		// Don't decrease the number of modules if already equal the preferred number
@@ -451,17 +465,17 @@ unsigned int InfomapGreedyCommon<InfomapGreedyDerivedType>::tryMoveEachNodeIntoB
 		// If no links connecting this node with other nodes, it won't move into others,
 		// and others won't move into this. TODO: Always best leave it alone?
 //		if (current.degree() == 0)
-		if (current.degree() == 0 ||
-			(Super::m_config.includeSelfLinks &&
-			(current.outDegree() == 1 && current.inDegree() == 1) &&
-			(**current.begin_outEdge()).target == current))
-		{
-			DEBUG_OUT("SKIPPING isolated node " << current << "\n");
-			//TODO: If not skipping self-links, this yields different results from moveNodesToPredefinedModules!!
-			ASSERT(!m_config.includeSelfLinks);
-			current.dirty = false;
-			continue;
-		}
+		// if (current.degree() == 0 ||
+		// 	(Super::m_config.includeSelfLinks &&
+		// 	(current.outDegree() == 1 && current.inDegree() == 1) &&
+		// 	(**current.begin_outEdge()).target == current))
+		// {
+		// 	DEBUG_OUT("SKIPPING isolated node " << current << "\n");
+		// 	//TODO: If not skipping self-links, this yields different results from moveNodesToPredefinedModules!!
+		// 	ASSERT(!m_config.includeSelfLinks);
+		// 	current.dirty = false;
+		// 	continue;
+		// }
 
 		// Create vector with module links
 
@@ -662,7 +676,7 @@ unsigned int InfomapGreedyCommon<InfomapGreedyDerivedType>::tryMoveEachNodeIntoB
 		if (!current.dirty)
 			continue;
 
-		if (Super::m_moduleMembers[current.index] > 1 && Super::isFirstLoop())
+		if (Super::m_moduleMembers[current.index] > 1 && Super::isFirstLoop() && m_config.tuneIterationLimit != 1)
 			continue;
 
 		// If no links connecting this node with other nodes, it won't move into others,
@@ -860,7 +874,7 @@ unsigned int InfomapGreedyCommon<InfomapGreedyDerivedType>::tryMoveEachNodeIntoB
 			continue;
 
 		// If other nodes have moved here, don't move away on first loop
-		if (Super::m_moduleMembers[current.index] > 1 && Super::isFirstLoop())
+		if (Super::m_moduleMembers[current.index] > 1 && Super::isFirstLoop() && m_config.tuneIterationLimit != 1)
 			continue;
 
 		// Don't decrease the number of modules if already equal the preferred number
@@ -1126,7 +1140,7 @@ unsigned int InfomapGreedyCommon<InfomapGreedyDerivedType>::tryMoveEachNodeIntoS
 		if (!current.dirty) //TODO: Only skip stable nodes until converged, then start over as a fine tune?
 			continue;
 
-		if (Super::m_moduleMembers[current.index] > 1 && Super::isFirstLoop())
+		if (Super::m_moduleMembers[current.index] > 1 && Super::isFirstLoop() && m_config.tuneIterationLimit != 1)
 			continue;
 
 		unsigned int strongestConnectedModule = current.index;
@@ -1384,7 +1398,7 @@ unsigned int InfomapGreedyCommon<InfomapGreedyDerivedType>::consolidateModules(b
 
 
 	// Aggregate links from lower level to the new modular level
-	typedef std::pair<NodeBase*, NodeBase*> NodePair;
+	typedef std::pair<unsigned int, unsigned int> NodePair;
 	typedef std::map<NodePair, double> EdgeMap;
 	EdgeMap moduleLinks;
 
@@ -1392,23 +1406,23 @@ unsigned int InfomapGreedyCommon<InfomapGreedyDerivedType>::consolidateModules(b
 			nodeIt != nodeEnd; ++nodeIt)
 	{
 		NodeBase* node = *nodeIt;
+		unsigned int module1 = node->index;
 
-		NodeBase* parent = node->parent;
 		for (NodeBase::edge_iterator edgeIt(node->begin_outEdge()), edgeEnd(node->end_outEdge());
 				edgeIt != edgeEnd; ++edgeIt)
 		{
 			EdgeType* edge = *edgeIt;
-			NodeBase* otherParent = edge->target.parent;
+			unsigned int module2 = edge->target.index;
 
-			if (otherParent != parent)
+			if (module1 != module2)
 			{
-				NodeBase *m1 = parent, *m2 = otherParent;
+				unsigned int m1 = module1, m2 = module2;
 				// If undirected, the order may be swapped to aggregate the edge on an opposite one
-				if (!IsDirectedType() && m1->index > m2->index)
+				if (!IsDirectedType() && m1 > m2)
 					std::swap(m1, m2);
 				// Insert the node pair in the edge map. If not inserted, add the flow value to existing node pair.
-				std::pair<EdgeMap::iterator, bool> ret = \
-						moduleLinks.insert(std::make_pair(NodePair(m1, m2), edge->data.flow));
+				std::pair<typename EdgeMap::iterator, bool> ret = \
+					moduleLinks.insert(std::make_pair(NodePair(m1, m2), edge->data.flow));
 				if (!ret.second)
 					ret.first->second += edge->data.flow;
 			}
@@ -1420,7 +1434,7 @@ unsigned int InfomapGreedyCommon<InfomapGreedyDerivedType>::consolidateModules(b
 			edgeIt != edgeEnd; ++edgeIt)
 	{
 		const NodePair& nodePair = edgeIt->first;
-		nodePair.first->addOutEdge(*nodePair.second, 0.0, edgeIt->second);
+		modules[nodePair.first]->addOutEdge(*modules[nodePair.second], 0.0, edgeIt->second);
 	}
 
 	// Replace active network with its children if not at leaf level.

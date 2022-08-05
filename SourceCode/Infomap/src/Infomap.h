@@ -28,7 +28,11 @@
 #ifndef SRC_INFOMAP_H_
 #define SRC_INFOMAP_H_
 
+#ifdef __cplusplus
+
 #include <string>
+#include "io/Config.h"
+#include "infomap/InfomapContext.h"
 #include "io/HierarchicalNetwork.h"
 #include "infomap/MultiplexNetwork.h"
 
@@ -49,8 +53,148 @@ Config init(const std::string& flags);
 
 int run(Network& input, HierarchicalNetwork& output);
 
+
+class Infomap {
+    public:
+    Infomap(const std::string flags)
+    : config(init(flags)), network(config), tree(config) {}
+	
+    void readInputData(std::string filename) {
+        try
+        {
+            network.readInputData(filename);
+        }
+        catch (std::exception& e)
+        {
+            std::cerr << e.what() << std::endl;
+        }
+    }
+
+    bool addLink(unsigned int n1, unsigned int n2, double weight = 1.0) {
+        return network.addLink(n1, n2, weight);
+    }
+
+    /**
+	 * Change this network to a bipartite network
+	 * @param bipartiteStartIndex Nodes equal to or above this index are treated as feature nodes
+	 */
+	void setBipartiteNodesFrom(unsigned int bipartiteStartIndex) {
+        network.setBipartiteNodesFrom(bipartiteStartIndex);
+    }
+
+    int run() {
+        try
+        {
+            InfomapContext context(config);
+            context.getInfomap()->run(network, tree);
+        }
+        catch (std::exception& e)
+        {
+            std::cerr << e.what() << std::endl;
+            return 1;
+        }
+        return 0;
+    }
+
+    Config config;
+    MultiplexNetwork network;
+    HierarchicalNetwork tree;
+};
+
+
+class MemInfomap {
+    static std::string flagsWithMemory(std::string flags) {
+        flags += " --with-memory";
+        return flags;
+    }
+
+    public:
+    MemInfomap(const std::string flags)
+    : config(init(flags)), network(config), tree(config) {}
+
+    void readInputData(std::string filename) {
+        try
+        {
+            network.readInputData(filename);
+        }
+        catch (std::exception& e)
+        {
+            std::cerr << e.what() << std::endl;
+        }
+    }
+
+    bool addTrigram(unsigned int n1, unsigned int n2, unsigned int n3, double weight = 1.0){
+        return network.addStateLink(n1, n2, n2, n3, weight);
+    }
+
+    bool addStateLink(unsigned int n1PriorState, unsigned int n1, unsigned int n2PriorState, unsigned int n2, double weight = 1.0) {
+        return network.addStateLink(n1PriorState, n1, n2PriorState, n2, weight);
+    }
+
+    void addMultiplexLink(int layer1, int node1, int layer2, int node2, double weight = 1.0) {
+        network.addMultiplexLink(layer1, node1, layer2, node2, weight);
+    }
+
+    int run() {
+        try
+        {
+            InfomapContext context(config);
+            context.getInfomap()->run(network, tree);
+        }
+        catch (std::exception& e)
+        {
+            std::cerr << e.what() << std::endl;
+            return 1;
+        }
+        return 0;
+    }
+
+    Config config;
+    MultiplexNetwork network;
+    HierarchicalNetwork tree;
+};
+
+extern "C" {
+#else
+#include <stdint.h>
+#include <stdbool.h>
+struct Infomap;
+struct LeafIterator;
+#endif
+
+struct Infomap *NewInfomap(const char *flags);
+
+void DestroyInfomap(struct Infomap *im);
+
+void InfomapAddLink(struct Infomap *im, unsigned int sourceId,  unsigned int targetId, double weight);
+
+void InfomapRun(struct Infomap *im);
+
+double Codelength(struct Infomap *im);
+
+unsigned int NumModules(struct Infomap *im);
+
+struct LeafIterator *NewIter(struct Infomap *im);
+
+void DestroyIter(struct LeafIterator *it);
+
+bool IsEnd(struct LeafIterator *it);
+
+void Next(struct LeafIterator *it);
+
+unsigned int Depth(struct LeafIterator *it);
+
+unsigned int NodeIndex(struct LeafIterator *it);
+
+unsigned int ModuleIndex(struct LeafIterator *it);
+
+double Flow(struct LeafIterator *it);
+
+#ifdef __cplusplus
+}
 #ifdef NS_INFOMAP
 }
+#endif
 #endif
 
 #endif /* SRC_INFOMAP_H_ */

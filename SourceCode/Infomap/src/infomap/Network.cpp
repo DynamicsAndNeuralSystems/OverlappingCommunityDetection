@@ -3,9 +3,9 @@
  Infomap software package for multi-level network clustering
 
  Copyright (c) 2013, 2014 Daniel Edler, Martin Rosvall
- 
+
  For more information, see <http://www.mapequation.org>
- 
+
 
  This file is part of Infomap software package.
 
@@ -32,6 +32,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
+#include <deque>
 
 #include "../io/convert.h"
 #include "../io/SafeFile.h"
@@ -79,7 +80,7 @@ unsigned int Network::addNodes(const std::vector<std::string>& names)
 	m_numNodes = names.size();
 	if (m_config.nodeLimit > 0 && m_config.nodeLimit < m_numNodes)
 		m_numNodes = m_config.nodeLimit;
-	
+
 	m_nodeNames.resize(m_numNodes);
 	m_nodeWeights.assign(m_numNodes, 1.0);
 	for (unsigned int i = 0; i < m_numNodes; ++i)
@@ -387,25 +388,42 @@ void Network::parseBipartiteNetwork(std::string filename)
 //
 //////////////////////////////////////////////////////////////////////////////////////////
 
-std::string Network::parseVertices(std::ifstream& file)
+std::string Network::skipUntilHeader(std::ifstream& file)
 {
 	std::string line;
 
+	// First skip lines until header
 	while(!std::getline(file, line).fail())
 	{
 		if (line.length() == 0 || line[0] == '#')
 			continue;
 		if (line[0] == '*')
 			break;
-
 	}
+
+	return line;
+}
+
+std::string Network::parseVertices(std::ifstream& file, bool required)
+{
+	std::string line;
+
+	// First skip lines until header
+	while(!std::getline(file, line).fail())
+	{
+		if (line.length() == 0 || line[0] == '#')
+			continue;
+		if (line[0] == '*')
+			break;
+	}
+
 	if (line.length() == 0 || line[0] != '*')
 		throw FileFormatError("No matching header for vertices found.");
 
-	return parseVertices(file, line);
+	return parseVertices(file, line, required);
 }
 
-std::string Network::parseVertices(std::ifstream& file, std::string header)
+std::string Network::parseVertices(std::ifstream& file, std::string header, bool required)
 {
 	std::istringstream ss;
 	std::string buf;
@@ -417,6 +435,8 @@ std::string Network::parseVertices(std::ifstream& file, std::string header)
 					"' as the number of nodes.");
 	}
 	else {
+		if (!required)
+			return header;
 		throw FileFormatError(io::Str() << "The header '" << header << "' doesn't match *Vertices (case insensitive).");
 	}
 
@@ -431,9 +451,70 @@ std::string Network::parseVertices(std::ifstream& file, std::string header)
 	m_sumNodeWeights = 0.0;
 
 	std::string line;
-	char next = file.peek();
-	if (next == '*') // Short pajek version (no nodes defined), set node number as name
+	unsigned int numNodesParsed = 0;
+	bool didEarlyBreak = false;
+
+	// Read node names and optional weight, assuming id 1, 2, 3, ... (or 0, 1, 2, ... if zero-based node numbering)
+	while(!std::getline(file, line).fail())
 	{
+		if (line.length() == 0 || line[0] == '#')
+			continue;
+
+		if (line[0] == '*')
+			break;
+
+		if (m_config.nodeLimit > 0 && numNodesParsed == m_config.nodeLimit) {
+			didEarlyBreak = true;
+			break;
+		}
+
+		// parseVertice(line, id, name, weight);
+		ss.clear();
+		ss.str(line);
+
+		unsigned int id = 0;
+		if (!(ss >> id))
+			throw FileFormatError(io::Str() << "Can't parse node id from line '" << line << "'");
+
+		unsigned int nameStart = line.find_first_of("\"");
+		unsigned int nameEnd = line.find_last_of("\"");
+		std::string name("");
+		if(nameStart < nameEnd) {
+			name = std::string(line.begin() + nameStart + 1, line.begin() + nameEnd);
+			line = line.substr(nameEnd + 1);
+			ss.clear();
+			ss.str(line);
+		}
+		else {
+			if (!(ss >> name))
+				throw FileFormatError(io::Str() << "Can't parse node name from line '" << line << "'");
+		}
+		double weight = 1.0;
+		if ((ss >> weight)) {
+			// TODO: Check valid weight here?
+			if (weight < 0.0) {
+				throw FileFormatError(io::Str() << "Parsed a negative value (" <<
+				weight << ") as weight to node " << id << " from line '" <<
+				line << "'.");
+			}
+		}
+		unsigned int nodeIndex = static_cast<unsigned int>(id - m_indexOffset);
+		if (nodeIndex != numNodesParsed)
+		{
+			throw BadConversionError(io::Str() << "The node id from line '" << line <<
+				"' doesn't follow a consequitive order" <<
+				((m_indexOffset == 1 && id == 0)? ".\nBe sure to use zero-based node numbering if the node numbers start from zero." : "."));
+		}
+
+		m_sumNodeWeights += weight;
+		m_nodeWeights[nodeIndex] = weight;
+		m_nodeNames[nodeIndex] = name;
+		++numNodesParsed;
+	}
+
+	if (line[0] == '*' && numNodesParsed == 0)
+	{
+		// Short pajek version (no nodes defined), set node number as name
 		for (unsigned int i = 0; i < m_numNodes; ++i)
 		{
 			m_nodeWeights[i] = 1.0;
@@ -441,50 +522,21 @@ std::string Network::parseVertices(std::ifstream& file, std::string header)
 		}
 		m_sumNodeWeights = m_numNodes * 1.0;
 	}
-	else
-	{
-		// Read node names, assuming order 1, 2, 3, ... (or 0, 1, 2, ... if zero-based node numbering)
+	
+	if (m_sumNodeWeights < 1e-10) {
+		Log() << " (Warning: All node weights zero, changing to one) ";
 		for (unsigned int i = 0; i < m_numNodes; ++i)
 		{
-			unsigned int id = 0;
-			if (!(file >> id) || id != static_cast<unsigned int>(i + m_indexOffset))
-			{
-				throw BadConversionError(io::Str() << "Couldn't parse line " << (i + m_indexOffset + 1) << ". Should begin with node number " << (i + m_indexOffset) <<
-						((m_indexOffset == 1 && id == i)? ".\nBe sure to use zero-based node numbering if the node numbers start from zero." : "."));
-			}
-			// Read the rest of the line
-			std::getline(file,line);
-			unsigned int nameStart = line.find_first_of("\"");
-			unsigned int nameEnd = line.find_last_of("\"");
-			string name;
-			double nodeWeight = 1.0;
-			if(nameStart < nameEnd) {
-				name = string(line.begin() + nameStart + 1, line.begin() + nameEnd);
-				line = line.substr(nameEnd + 1);
-				ss.clear();
-				ss.str(line);
-			}
-			else {
-				ss.clear();
-				ss.str(line);
-				ss >> buf; // Take away the index from the stream
-				ss >> name; // Extract the next token as the name assuming no spaces
-			}
-			ss >> nodeWeight; // Extract the next token as node weight. If failed, the old value (1.0) is kept.
-			m_sumNodeWeights += nodeWeight;
-			m_nodeWeights[i] = nodeWeight;
-			m_nodeNames[i] = name;
+			m_nodeWeights[i] = 1.0;
 		}
-
-		if (m_config.nodeLimit > 0 && m_numNodes < m_numNodesFound)
-		{
-			unsigned int surplus = m_numNodesFound - m_numNodes;
-			for (unsigned int i = 0; i < surplus; ++i)
-				std::getline(file, line);
-		}
+		m_sumNodeWeights = m_numNodes * 1.0;
 	}
-	// Return the line after the vertices
-	std::getline(file, line);
+
+	if (didEarlyBreak)
+	{
+		line = skipUntilHeader(file);
+	}
+
 	return line;
 }
 
@@ -583,13 +635,26 @@ bool Network::parseBipartiteLink(const std::string& line, unsigned int& featureN
 }
 
 
+void Network::setBipartiteNodesFrom(unsigned int bipartiteStartIndex)
+{
+	m_bipartiteStartIndex = bipartiteStartIndex;
+}
 
 bool Network::addLink(unsigned int n1, unsigned int n2, double weight)
 {
+	if (isBipartite()) {
+		return addBipartiteLink(n1, n2, weight);
+	}
 	++m_numLinksFound;
 
 	if (m_config.nodeLimit > 0 && (n1 >= m_config.nodeLimit || n2 >= m_config.nodeLimit))
 		return false;
+	
+	if (weight < m_config.weightThreshold) {
+		++m_numLinksIgnoredByWeightThreshold;
+		m_totalLinkWeightIgnored += weight;
+		return false;
+	}
 
 	if (n2 == n1)
 	{
@@ -606,8 +671,23 @@ bool Network::addLink(unsigned int n1, unsigned int n2, double weight)
 	m_minNodeIndex = std::min(m_minNodeIndex, std::min(n1, n2));
 
 	insertLink(n1, n2, weight);
+	if (m_config.expandUndirectedToDirected)
+		insertLink(n2, n1, weight);
 
 	return true;
+}
+
+bool Network::addBipartiteLink(unsigned int n1, unsigned int n2, double weight)
+{
+	bool n1IsBipartite = n1 >= m_bipartiteStartIndex;
+	bool n2IsBipartite = n2 >= m_bipartiteStartIndex;
+	if ((!n1IsBipartite && !n2IsBipartite) || (n1IsBipartite && n2IsBipartite))
+		throw InputDomainError(io::Str() << "Link between " << n1 << " and " << n2 <<
+		" is not bipartite according to bipartite start index " << m_bipartiteStartIndex << ".");
+	if (n1IsBipartite)
+		return addBipartiteLink(n1, n2, false, weight);
+	else
+		return addBipartiteLink(n2, n1, true, weight);
 }
 
 bool Network::addBipartiteLink(unsigned int featureNode, unsigned int node, bool swapOrder, double weight)
@@ -619,17 +699,26 @@ bool Network::addBipartiteLink(unsigned int featureNode, unsigned int node, bool
 
 	m_maxNodeIndex = std::max(m_maxNodeIndex, node);
 	m_minNodeIndex = std::min(m_minNodeIndex, node);
+	m_minFeatureIndex = std::min(m_minFeatureIndex, featureNode);
 
 	m_bipartiteLinks[BipartiteLink(featureNode, node, swapOrder)] += weight;
 
 	return true;
 }
 
+bool Network::addNode(unsigned int nodeIndex)
+{
+	m_maxNodeIndex = std::max(m_maxNodeIndex, nodeIndex);
+	m_minNodeIndex = std::min(m_minNodeIndex, nodeIndex);
+	return insertNode(nodeIndex);
+}
 
 bool Network::insertLink(unsigned int n1, unsigned int n2, double weight)
 {
 	++m_numLinks;
 	m_totalLinkWeight += weight;
+	insertNode(n1);
+	insertNode(n2);
 
 	// Aggregate link weights if they are definied more than once
 	LinkMap::iterator firstIt = m_links.lower_bound(n1);
@@ -652,16 +741,27 @@ bool Network::insertLink(unsigned int n1, unsigned int n2, double weight)
 	return true;
 }
 
+bool Network::insertNode(unsigned int nodeIndex)
+{
+	return m_nodes.insert(nodeIndex).second;
+}
+
 void Network::finalizeAndCheckNetwork(bool printSummary, unsigned int desiredNumberOfNodes)
 {
+	m_isFinalized = true;
 	// If no nodes defined
 	if (m_numNodes == 0)
 		m_numNodes = m_numNodesFound = m_maxNodeIndex + 1;
 
 	if (desiredNumberOfNodes != 0)
 	{
-		if (!m_nodeNames.empty() && desiredNumberOfNodes != m_nodeNames.size())
-			throw InputDomainError("Can't change the number of nodes in networks with a specified number of nodes.");
+		if (!m_nodeNames.empty() && desiredNumberOfNodes != m_nodeNames.size()) {
+			// throw InputDomainError("Can't change the number of nodes in networks with a specified number of nodes.");
+			m_nodeNames.reserve(desiredNumberOfNodes);
+			for (unsigned int i = m_nodeNames.size(); i < desiredNumberOfNodes; ++i) {
+				m_nodeNames.push_back(io::Str() << "_completion_node_" << (i + 1));
+			}
+		}
 		m_numNodes = desiredNumberOfNodes;
 	}
 
@@ -678,11 +778,17 @@ void Network::finalizeAndCheckNetwork(bool printSummary, unsigned int desiredNum
 	{
 		if (m_numLinks > 0)
 			throw InputDomainError("Can't add bipartite links together with ordinary links.");
+		if (m_bipartiteStartIndex == std::numeric_limits<unsigned int>::max())
+			m_bipartiteStartIndex = m_maxNodeIndex + 1;
+		unsigned int featureIndexOffset = 0;
+		if (m_minFeatureIndex < m_bipartiteStartIndex) {
+			featureIndexOffset = m_bipartiteStartIndex;
+		}
 		for (std::map<BipartiteLink, Weight>::iterator it(m_bipartiteLinks.begin()); it != m_bipartiteLinks.end(); ++it)
 		{
 			const BipartiteLink& link = it->first;
 			// Offset feature nodes by the number of ordinary nodes to make them unique
-			unsigned int featureNodeIndex = link.featureNode + m_numNodes;
+			unsigned int featureNodeIndex = link.featureNode + featureIndexOffset;
 			m_maxNodeIndex = std::max(m_maxNodeIndex, featureNodeIndex);
 			if (link.swapOrder)
 				insertLink(link.node, featureNodeIndex, it->second.weight);
@@ -797,6 +903,85 @@ void Network::initNodeDegrees()
 	}
 }
 
+
+void Network::initNodeNames()
+{
+	unsigned int indexOffset = m_config.zeroBasedNodeNumbers? 0 : 1;
+	if (m_nodeNames.size() < numNodes())
+	{
+		// Define nodes
+		unsigned int oldSize = m_nodeNames.size();
+		m_nodeNames.resize(numNodes());
+
+		if (m_config.parseWithoutIOStreams)
+		{
+			const int NAME_BUFFER_SIZE = 32;
+			char line[NAME_BUFFER_SIZE];
+			for (unsigned int i = oldSize; i < numNodes(); ++i)
+			{
+				int length = snprintf(line, NAME_BUFFER_SIZE, "%d", i + indexOffset);
+				m_nodeNames[i] = std::string(line, length);
+			}
+		}
+		else
+		{
+			for (unsigned int i = oldSize; i < numNodes(); ++i)
+				m_nodeNames[i] = io::stringify(i + indexOffset);
+		}
+	}
+}
+
+void Network::generateOppositeLinks()
+{
+	// First collect all links to not insert while iterating, which may lead to duplication of existing links
+	std::deque<Link> links;
+	for (LinkMap::const_iterator linkIt(m_links.begin()); linkIt != m_links.end(); ++linkIt)
+	{
+		unsigned int sourceIndex = linkIt->first;
+		const std::map<unsigned int, double>& outLinks = linkIt->second;
+		for (std::map<unsigned int, double>::const_iterator outLinkIt(outLinks.begin()); outLinkIt != outLinks.end(); ++outLinkIt)
+		{
+			unsigned int targetIndex = outLinkIt->first;
+			double weight = outLinkIt->second;
+			links.push_back(Link(sourceIndex, targetIndex, weight));
+		}
+	}
+	for (std::deque<Link>::const_iterator it(links.begin()); it != links.end(); ++it) {
+		const Link& link = *it;
+		// Create link in opposite direction
+		addLink(link.n2, link.n1, link.weight);
+	}
+}
+
+void Network::generateOppositeLinkMap(LinkMap& oppositeLinks)
+{
+
+	for (LinkMap::const_iterator linkIt(m_links.begin()); linkIt != m_links.end(); ++linkIt)
+	{
+		unsigned int sourceIndex = linkIt->first;
+		const std::map<unsigned int, double>& outLinks = linkIt->second;
+		for (std::map<unsigned int, double>::const_iterator outLinkIt(outLinks.begin()); outLinkIt != outLinks.end(); ++outLinkIt)
+		{
+			unsigned int targetIndex = outLinkIt->first;
+			double weight = outLinkIt->second;
+			// Insert opposite link, aggregate link weights if they are definied more than once
+			LinkMap::iterator firstIt = oppositeLinks.lower_bound(targetIndex);
+			if (firstIt != oppositeLinks.end() && firstIt->first == targetIndex) // First linkEnd already exists, check second linkEnd
+			{
+				std::pair<std::map<unsigned int, double>::iterator, bool> ret2 = firstIt->second.insert(std::make_pair(sourceIndex, weight));
+				if (!ret2.second)
+				{
+					ret2.first->second += weight;
+				}
+			}
+			else
+			{
+				oppositeLinks.insert(firstIt, std::make_pair(targetIndex, std::map<unsigned int, double>()))->second.insert(std::make_pair(sourceIndex, weight));
+			}
+		}
+	}
+}
+
 void Network::printParsingResult(bool onlySummary)
 {
 	bool dataModified = m_numNodesFound != m_numNodes || m_numLinksFound != m_numLinks;
@@ -818,6 +1003,8 @@ void Network::printParsingResult(bool onlySummary)
 		Log() << "\n --> Aggregated " << m_numAggregatedLinks << io::toPlural(" link", m_numAggregatedLinks) << " to existing links.";
 	if (m_numSelfLinksFound > 0 && !m_config.includeSelfLinks)
 		Log() << "\n --> Ignored " << m_numSelfLinksFound << io::toPlural(" self-link", m_numSelfLinksFound) << ".";
+	if (m_numLinksIgnoredByWeightThreshold > 0)
+		Log() << "\n --> Ignored " << m_numLinksIgnoredByWeightThreshold << io::toPlural(" link", m_numLinksIgnoredByWeightThreshold) << " with total weight " << m_totalLinkWeightIgnored << ".";
 	unsigned int numNodesIgnored = m_numNodesFound - m_numNodes;
 	if (m_config.nodeLimit > 0)
 		Log() << "\n --> Ignored " << numNodesIgnored << io::toPlural(" node", numNodesIgnored) << " due to specified limit.";
@@ -861,6 +1048,34 @@ void Network::printNetworkAsPajek(std::string filename) const
 	SafeOutFile out(filename.c_str());
 
 	out << "*Vertices " << m_numNodes << "\n";
+	if (m_nodeNames.empty()) {
+		for (unsigned int i = 0; i < m_numNodes; ++i)
+			out << (i+1) << " \"" << i + 1 << "\"\n";
+	}
+	else {
+		for (unsigned int i = 0; i < m_numNodes; ++i)
+			out << (i+1) << " \"" << m_nodeNames[i] << "\"\n";
+	}
+
+	out << (m_config.isUndirected() ? "*Edges " : "*Arcs ") << m_links.size() << "\n";
+	for (LinkMap::const_iterator linkIt(m_links.begin()); linkIt != m_links.end(); ++linkIt)
+	{
+		unsigned int linkEnd1 = linkIt->first;
+		const std::map<unsigned int, double>& subLinks = linkIt->second;
+		for (std::map<unsigned int, double>::const_iterator subIt(subLinks.begin()); subIt != subLinks.end(); ++subIt)
+		{
+			unsigned int linkEnd2 = subIt->first;
+			double linkWeight = subIt->second;
+			out << (linkEnd1 + 1) << " " << (linkEnd2 + 1) << " " << linkWeight << "\n";
+		}
+	}
+}
+
+void Network::printStateNetwork(std::string filename) const
+{
+	SafeOutFile out(filename.c_str());
+
+	out << "*States " << m_numNodes << "\n";
 	if (m_nodeNames.empty()) {
 		for (unsigned int i = 0; i < m_numNodes; ++i)
 			out << (i+1) << " \"" << i + 1 << "\"\n";

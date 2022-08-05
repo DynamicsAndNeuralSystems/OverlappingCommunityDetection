@@ -1,14 +1,18 @@
-CXXFLAGS = -Wall -pipe
+CXXFLAGS = -Wall -pipe -std=gnu++98
 LDFLAGS =
 CXX_CLANG := $(shell $(CXX) --version 2>/dev/null | grep clang)
-ifeq "$(CXX_CLANG)" ""
-	CXXFLAGS += -O4
-	ifneq "$(findstring noomp, $(MAKECMDGOALS))" "noomp"
-		CXXFLAGS += -fopenmp
-		LDFLAGS += -fopenmp
-	endif
+ifeq "$(findstring debug, $(MAKECMDGOALS))" "debug"
+	CXXFLAGS += -O0 -g
 else
-	CXXFLAGS += -O3
+	ifeq "$(CXX_CLANG)" ""
+		CXXFLAGS += -O4
+		ifneq "$(findstring noomp, $(MAKECMDGOALS))" "noomp"
+			CXXFLAGS += -fopenmp
+			LDFLAGS += -fopenmp
+		endif
+	else
+		CXXFLAGS += -O3
+	endif
 endif
 
 ##################################################
@@ -27,7 +31,7 @@ OBJECTS := $(SOURCES:src/%.cpp=build/Infomap/%.o)
 
 INFORMATTER_OBJECTS = $(OBJECTS:Infomap.o=Informatter.o)
 
-.PHONY: all noomp test
+.PHONY: noomp test debug
 
 Infomap: $(OBJECTS)
 	@echo "Linking object files to target $@..."
@@ -38,9 +42,6 @@ Infomap-formatter: $(INFORMATTER_OBJECTS)
 	@echo "Making Informatter..."
 	$(CXX) $(LDFLAGS) -o $@ $^
 
-all: Infomap Infomap-formatter
-	@true
-
 ## Generic compilation rule for object files from cpp files
 build/Infomap/%.o : src/%.cpp $(HEADERS) Makefile
 	@mkdir -p $(dir $@)
@@ -48,6 +49,34 @@ build/Infomap/%.o : src/%.cpp $(HEADERS) Makefile
 
 noomp: Infomap
 	@true
+
+debug: Infomap
+	@true
+
+
+##################################################
+# JavaScript through Emscripten
+##################################################
+
+.PHONY: js js-worker
+
+js: build/js/Infomap.js
+	@echo "Built $^"
+
+js-worker: build/js/Infomap-worker.js
+	@echo "Built $^"
+
+# em++ -O0 -s PROXY_TO_WORKER=1 -s PROXY_TO_WORKER_FILENAME='Infomap.js' -o Infomap.js $^
+# em++ -O0 -s PROXY_TO_WORKER=1 -s EXPORT_NAME='Infomap' -s MODULARIZE=1 -o Infomap.js $^
+build/js/Infomap-worker.js: $(SOURCES)
+	@echo "Compiling Infomap to run in a worker in the browser..."
+	@mkdir -p $(dir $@)
+	em++ -O3 -s WASM=0 -s ALLOW_MEMORY_GROWTH=1 --pre-js interfaces/js/pre-worker-module.js -o build/js/Infomap-worker.js $^
+
+build/js/Infomap.js: $(SOURCES)
+	@echo "Compiling Infomap for Node.js..."
+	@mkdir -p $(dir $@)
+	em++ -O0 -o build/js/Infomap.js $^
 
 
 ##################################################
@@ -94,8 +123,11 @@ SWIG_FILES := $(shell find interfaces/swig -name "*.i")
 ##################################################
 
 PY_BUILD_DIR = build/py
+PY3_BUILD_DIR = build/py3
 PY_HEADERS := $(HEADERS:src/%.h=$(PY_BUILD_DIR)/src/%.h)
 PY_SOURCES := $(SOURCES:src/%.cpp=$(PY_BUILD_DIR)/src/%.cpp)
+PY3_HEADERS := $(HEADERS:src/%.h=$(PY3_BUILD_DIR)/src/%.h)
+PY3_SOURCES := $(SOURCES:src/%.cpp=$(PY3_BUILD_DIR)/src/%.cpp)
 
 .PHONY: python py-build
 
@@ -105,14 +137,28 @@ python: py-build Makefile
 	cd $(PY_BUILD_DIR) && python setup.py build_ext --inplace
 	@true
 
+python3: py3-build Makefile
+	@cp -a interfaces/python/setup.py $(PY3_BUILD_DIR)/
+	cd $(PY3_BUILD_DIR) && python3 setup.py build_ext --inplace
+	@true
+
 # Generate wrapper files from source and interface files
 py-build: $(PY_HEADERS) $(PY_SOURCES)
 	@mkdir -p $(PY_BUILD_DIR)
 	@cp -a $(SWIG_FILES) $(PY_BUILD_DIR)/
 	swig -c++ -python -outdir $(PY_BUILD_DIR) -o $(PY_BUILD_DIR)/infomap_wrap.cpp $(PY_BUILD_DIR)/Infomap.i
 
+py3-build: $(PY3_HEADERS) $(PY3_SOURCES)
+	@mkdir -p $(PY3_BUILD_DIR)
+	@cp -a $(SWIG_FILES) $(PY3_BUILD_DIR)/
+	swig -c++ -python -py3 -outdir $(PY3_BUILD_DIR) -o $(PY3_BUILD_DIR)/infomap_wrap.cpp $(PY3_BUILD_DIR)/Infomap.i
+
 # Rule for $(PY_HEADERS) and $(PY_SOURCES)
 $(PY_BUILD_DIR)/src/%: src/%
+	@mkdir -p $(dir $@)
+	@cp -a $^ $@
+
+$(PY3_BUILD_DIR)/src/%: src/%
 	@mkdir -p $(dir $@)
 	@cp -a $^ $@
 
@@ -143,6 +189,33 @@ $(R_BUILD_DIR)/src/%: src/%
 	@mkdir -p $(dir $@)
 	@cp -a $^ $@
 
+
+##################################################
+# General
+##################################################
+
+.PHONY: examples all
+
+# Make other language examples
+examples: Makefile python3 R
+	$(MAKE) -C examples/python python3
+	$(MAKE) -C examples/R
+
+all: Infomap examples
+	@true
+
+##################################################
+# Docker
+##################################################
+
+.PHONY: docker-build
+
+docker-build: Makefile
+	docker build -t infomap .
+
+# docker-run:
+# 	docker run -it --rm -v $(pwd):/home/rstudio infomap \
+	ninetriangles.net output
 
 ##################################################
 # Clean

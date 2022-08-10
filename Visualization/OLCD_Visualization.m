@@ -1,4 +1,4 @@
-function Plot = Visualization(Methods)
+function Plot = OLCD_Visualization(Methods)
 % Visualises results of the Computation Module
 % Assumes Computation_Result.mat exists in the Matlab path
 %-------------------------------------------------------------------------------
@@ -111,7 +111,7 @@ for i = 1:size(methodNames,2)
 end
 set(gca, 'XTick', XTickLabel+Width/2); % Sets the axis ticks to these values
 set(gca, 'XTickLabel', methodNames, 'FontSize', 10); % Shows the labels, makes them smaller
-set(gca, 'XTickLabelRotation', 45); % Rotates the labels to 45 degrees 
+set(gca, 'XTickLabelRotation', 45); % Rotates the labels to 45 degrees
 set(gcf, 'InvertHardCopy', 'off'); % Fixes white background issue
 
 end

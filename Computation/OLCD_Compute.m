@@ -1,4 +1,4 @@
-function Final = Computation(adjMatrix,methodList,isBenchmark,benchmarkFileName)
+function Final = OLCD_Compute(networkAdj,methodList,isBenchmark,benchmarkFileName)
 % Computes a set of (overlapping) community-detection algorithms for a given input network
 %
 %---INPUTS:
@@ -14,9 +14,9 @@ function Final = Computation(adjMatrix,methodList,isBenchmark,benchmarkFileName)
 %   Link - requires python to be loaded
 
 %-------------------------------------------------------------------------------
-%% Check inputs
+%% Check Inputs
 %-------------------------------------------------------------------------------
-if nargin < 1 || isempty(adjMatrix)
+if nargin < 1 || isempty(networkAdj)
     error('Error: Please input a matrix');
 end
 
@@ -36,23 +36,23 @@ end
 %% Converting the input into all the formats
 %-------------------------------------------------------------------------------
 
-if size(adjMatrix,1) == size(adjMatrix,2) % square adjacency matrix
-    Mat = adjMatrix;
+if size(networkAdj,1) == size(networkAdj,2) % square adjacency matrix
+    Mat = networkAdj;
     numNodes = size(Mat,1); % Number of nodes
 
     DirList = Mat2Direct(Mat,numNodes); % Calls function to convert matrix to directed list
-    Undir = Mat2Undir(Mat); % Calls function to make undirected adjMatrix
+    Undir = Mat2Undir(Mat); % Calls function to make undirected networkAdj
 
-elseif size(adjMatrix,2)==3 % List format
-    if sum(adjMatrix(:,1) > adjMatrix(:,2)) == 0 % (undirected)
-        Undir = adjMatrix;
+elseif size(networkAdj,2)==3 % List format
+    if sum(networkAdj(:,1) > networkAdj(:,2)) == 0 % (undirected)
+        Undir = networkAdj;
         numNodes = max(max(Undir(:,1:2))); % Calculates the number of nodes in the system
 
         DirList = Undir2Direct(Undir); % Converts undirected to directed list
-        Mat = Direct2Matrix(DirList,numNodes); % Calls function to make matrix adjMatrix
+        Mat = Direct2Matrix(DirList,numNodes); % Calls function to make matrix networkAdj
     else % If directed
 
-        DirList = adjMatrix;
+        DirList = networkAdj;
         numNodes = max(max(DirList(:,1:2))); % Calculates the number of nodes in the system
 
         Mat = Direct2Matrix(DirList,numNodes); % Calls function to make matrix input

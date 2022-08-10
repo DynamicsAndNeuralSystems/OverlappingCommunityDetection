@@ -1,18 +1,12 @@
 # Empirical comparison of overlapping community detection algorithms
 
-These modules are separated into the computation and visualization modules, where computation does all the calculations, and visualization allows you to view the results and compare them.
+This package facilitates the computation of a wide range of overlapping community detection algorithms, and visualization of  the results.
 
 ## Compilation
 
-In the `SourceCode` directory, some algorithms need to be compiled for your system (from the terminal).
+In the `SourceCode` directory, some algorithms need to be compiled from the terminal for your system.
 
-#### OSLOM (C)
-
-In `SourceCode/OSLOM`:
-
-```shell
-./compile_all.sh
-```
+1. In a terminal, navigate to `SourceCode/OSLOM` and run `./compile_all.sh', and then check that the result works. See [here](http://www.oslom.org/software.htm) for more information.
 
 ## Computation
 
@@ -21,23 +15,25 @@ In `SourceCode/OSLOM`:
 `Computation` computes a range of community-detection algorithms on a given network, as:
 
 ```matlab
-Final = Computation(Input,Methods,isBenchmark,benchFileName);
+Final = OLCD_Compute(networkAdj,Methods,isBenchmark,benchFileName);
 ```
 
-Where:
+INPUTS:
 
-- `Final` -	The outputted structure, which contains all data from the algorithms (Method name, community result)
-- `Input` -	Can be an adjacency matrix, matrix list of undirected links, or matrix list of directed links
-- `Methods` -	Cells of the names of methods to be computed. _Default is Jerry and Shen methods_
-- `isBenchmark` -	0 for no benchmark, 1 for benchmark. _Default is 0_
+- `networkAdj` -	Can be an adjacency matrix, (matrix) list of undirected links, or (matrix) list of directed links.
+- `Methods` -	Cells of the names of methods to be computed.
+- `isBenchmark` - Logical: `false` for no benchmark (default), or `true` for benchmark.
 - `benchFileName` - String name of the text file within which the benchmark communities are defined
 
-Results are saved to `Computation_Result.mat`, which can be visualized using code in the Visualization module.
+OUTPUTS:
+
+- `Final` (structure) contains all data from the algorithms (Method name, community result).
+- Results are also saved to `Computation_Result.mat`, which can be visualized using code in the Visualization module.
 
 ### Structure
 
 Each community detection method has its own directory within the `Computation_Module` directory.
-Each directory, `MethodName`, contains 3 files -
+Each directory, `MethodName`, contains three files:
 
 - `call_[MethodName]` - This function is called by the overarching `computation.m` function. It simplifies the entire process down to one line.
 - `run_[MethodName]` - This function is called to do the actual calculations; running the algorithm and spitting out its output (Note: If calculations need to be hard coded to specific directories, this is done within this `.m` file.
@@ -70,7 +66,7 @@ If you wish to add a module, here is how to do so:
 ### Usage/Syntax:
 
 ```matlab
-Visualization(Methods)
+OLCD_Visualization(Methods)
 ```
 
 `Methods` is a cell array of methods to be visualized.

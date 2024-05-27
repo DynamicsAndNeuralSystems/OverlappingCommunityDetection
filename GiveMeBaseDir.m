@@ -1,3 +1,3 @@
 function baseDir = GiveMeBaseDir()
-    baseDir = '/Users/benfulcher/DropboxSydneyUni/CodeToolboxes/OverlappingCommunityDetection';
+    baseDir = '/home/patrick/Documents/OverlappingCommunityDetection';
 end

@@ -51,7 +51,6 @@ elseif size(networkAdj,2)==3 % List format
         DirList = Undir2Direct(Undir); % Converts undirected to directed list
         Mat = Direct2Matrix(DirList,numNodes); % Calls function to make matrix networkAdj
     else % If directed
-
         DirList = networkAdj;
         numNodes = max(max(DirList(:,1:2))); % Calculates the number of nodes in the system
 
@@ -103,8 +102,8 @@ for m = 1:numMethods
                 Final.(sprintf('Gopalan_prec_%g', prec*100)) = ...
                     call_Gopalan(Undir, numNodes, 1000, prec);
             end
-        case 'SLPA'
-            Final.SLPA = call_Jerry(Mat, numNodes, 120, 0.09, 1, 'probabilistic');
+        case 'Jerry'
+            Final.Jerry = call_Jerry(Mat, numNodes, 120, 0.09, 1, 'probabilistic');
         case 'Link'
             for prec = [0,0.01,0.1]
                 Final.(sprintf('Link_prec_%g', prec*100)) = ...
@@ -120,10 +119,10 @@ for m = 1:numMethods
                 Final.(sprintf('OSLOM_%g', tol*100)) = ...
                     call_OSLOM(Undir, numNodes, 100, tol);
             end
-        case 'Clique'
-            for clique_size = [3,5,7,9]
+        case 'Shen'
+            for clique_size = [3,4,5,6,7,9]
                 Final.(sprintf('Clique_%g', clique_size)) = ...
-                    call_Shen(Mat, numNodes, clique_size, 1.3, 0);
+                    call_Shen(0.5*(Mat+Mat'), numNodes, clique_size, 1.3, 0);
             end
     end
 end

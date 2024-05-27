@@ -7,6 +7,9 @@ This package facilitates the computation of a wide range of overlapping communit
 In the `SourceCode` directory, some algorithms need to be compiled from the terminal for your system.
 
 1. In a terminal, navigate to `SourceCode/OSLOM` and run `./compile_all.sh', and then check that the result works. See [here](http://www.oslom.org/software.htm) for more information.
+2. Now, navigate to `Source/Infomap`
+   1. Run `make clean` and execute and terminal suggested code.
+   2. Now run `make` 
 
 ## Computation
 

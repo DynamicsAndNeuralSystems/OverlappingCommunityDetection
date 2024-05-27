@@ -110,6 +110,9 @@ for i = 1:size(methodNames,2)
     XTickLabel = [XTickLabel, XTickLabel(end)+Width]; % Finds all the labels needed
 end
 set(gca, 'XTick', XTickLabel+Width/2); % Sets the axis ticks to these values
+for i = 1:length(methodNames)
+    methodNames{i} = strrep(methodNames{i},"_","\_");
+end
 set(gca, 'XTickLabel', methodNames, 'FontSize', 10); % Shows the labels, makes them smaller
 set(gca, 'XTickLabelRotation', 45); % Rotates the labels to 45 degrees
 set(gcf, 'InvertHardCopy', 'off'); % Fixes white background issue

@@ -39,6 +39,7 @@ end
 % Find the maximal cliques in the input matrix:
 maxcliquetimer = tic;
 fprintf(1,'Finding maximal cliques in a %ux%u network using maximalCliques code...',length(A),length(A));
+
 allMaxClique = maximalCliques(A);
 fprintf(1,' Done in %s.\n',BF_TheTime(toc(maxcliquetimer)));
 clear maxcliquetimer
@@ -217,5 +218,5 @@ for ki = 1:length(k_r)
         nodeLabels{i,ki} = unique(CommLabels(Gprime(i,:)));
     end
     
-    QcValues(ki) = ComputeQc(ConvertnodeLabelsToCover(nodeLabels(:,ki)),A);
+    QcValues(ki) = ComputeQc(ConvertNodeLabelsToCover(nodeLabels(:,ki)),A);
 end

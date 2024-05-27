@@ -1,5 +1,5 @@
-CXXFLAGS = -Wall -pipe -std=gnu++98
-LDFLAGS =
+CXXFLAGS = -Wall -pipe -std=gnu++98 
+LDFLAGS = -static-libstdc++
 CXX_CLANG := $(shell $(CXX) --version 2>/dev/null | grep clang)
 ifeq "$(findstring debug, $(MAKECMDGOALS))" "debug"
 	CXXFLAGS += -O0 -g

@@ -1,11 +1,11 @@
-function Output = process_OSLOM(Tol,numNodes)
+function Output = process_OSLOM(Tol,numNodes, oslomResPath)
 % Function that processes the output of the OSLOM method
 
 Output = cell(1, length(Tol)); % Creates the cells for the output
 
 for t = Tol
     % Defines the fileName for program to read
-    fileName = sprintf('OSLOM_tol_%g.txt', t);
+    fileName = sprintf('%s/OSLOM_tol_%g.txt', oslomResPath, t);
 
     fid = fopen(fileName); % Opens file
     % Scans the text, creating a list, with 0s where it is the next module

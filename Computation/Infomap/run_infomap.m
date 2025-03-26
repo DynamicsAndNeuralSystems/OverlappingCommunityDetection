@@ -1,8 +1,8 @@
-function [] = run_infomap(dirlist)
+function [] = run_infomap(dirlist,sourceCodePath)
 % Function that runs the link communities command
 
 % Goes into the directory required
-cd SourceCode/Infomap
+cd(fullfile(sourceCodePath, 'Infomap'));
 
 fid = fopen('networki.txt', 'w'); % Creates text file
 fprintf(fid, '%g\t%g\t%f\n', dirlist'); % Places data within file

@@ -1,4 +1,4 @@
-function Plot = OLCD_Visualization(Methods)
+function Plot = OLCD_Visualization(Methods, resultsFile, cmap)
 % Visualises results of the Computation Module
 % Assumes Computation_Result.mat exists in the Matlab path
 %-------------------------------------------------------------------------------
@@ -11,14 +11,14 @@ end
 methodNames = cell(0); % Method names used
 
 %% Load data
-load('Computation_Result.mat');
+load(resultsFile);
 fprintf('Loading data created on %s!\n', Final.Date);
 numNodes = size(Final.Network, 1);
 
 %% Set parameters
 Width = 6; % Integers, defines width of each column
 fig_h = figure('color', 'w');
-cmp = colormap(jet); % Put your favourite colour map here
+cmp = colormap(cmap); % Put your favourite colour map here
 fig_h.Position = [1, 26, 1536, 703];
 
 %% Benchmark sorting of nodes

@@ -1,4 +1,4 @@
-function Final = OLCD_Compute(networkAdj,methodList,isBenchmark,benchmarkFileName)
+function Final = OLCD_Compute(networkAdj,methodList,isBenchmark,benchmarkFileName,sourceCodePath, outputPath)
 % Computes a set of (overlapping) community-detection algorithms for a given input network
 %
 %---INPUTS:
@@ -88,6 +88,8 @@ end
 %-------------------------------------------------------------------------------
 %% Running Functions
 %-------------------------------------------------------------------------------
+
+
 numMethods = length(methodList);
 fprintf(1,'Looping across %u OCDA methods.\n',numMethods);
 for m = 1:numMethods
@@ -96,7 +98,7 @@ for m = 1:numMethods
         case 'Clauset'
             Final.Clauset = call_Clauset(DirList, numNodes);
         case 'Infomap'
-            Final.Infomap = call_infomap(DirList, numNodes);
+            Final.Infomap = call_infomap(DirList, numNodes, sourceCodePath);
         case 'Gopalan'
             for prec = [0 0.1 0.2 0.3]
                 Final.(sprintf('Gopalan_prec_%g', prec*100)) = ...
@@ -117,7 +119,7 @@ for m = 1:numMethods
         case 'OSLOM'
             for tol = 0.1:0.1:1
                 Final.(sprintf('OSLOM_%g', tol*100)) = ...
-                    call_OSLOM(Undir, numNodes, 100, tol);
+                    call_OSLOM(Undir, numNodes, 100, tol, sourceCodePath, outputPath);
             end
         case 'Shen'
             for clique_size = [3,4,5,6,7,9]
@@ -130,7 +132,7 @@ end
 %-------------------------------------------------------------------------------
 %% Saving data
 %-------------------------------------------------------------------------------
-fileName = 'Computation_Result.mat';
+fileName = fullfile(outputPath, 'Computation_Result.mat');
 save(fileName, 'Final');
 fprintf('All computation is complete! Saved as %s.\n',fileName);
 

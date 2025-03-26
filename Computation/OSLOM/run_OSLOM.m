@@ -1,13 +1,14 @@
-function run_OSLOM(Undir, numIters, Tol)
+function run_OSLOM(Undir, numIters, Tol, sourceCodePath, outputPath)
 % Run the OSLOM algorithm (in Linux commandline) from Matlab
 %-------------------------------------------------------------------------------
 
 %-------------------------------------------------------------------------------
 % Write data into the OSLOM directory
 %-------------------------------------------------------------------------------
-pathBase = GiveMeBaseDir();
-filePath = fullfile('SourceCode','OSLOM'); % File path from module to OSLOM code
-cd(filePath); % Goes into the pathway of the code
+% pathBase = GiveMeBaseDir();
+% pathBase = fileparts(fileparts(pwd));
+% filePath = fullfile('SourceCode','OSLOM'); % File path from module to OSLOM code
+cd(fullfile(sourceCodePath, 'OSLOM')); % Goes into the pathway of the code
 
 %-------------------------------------------------------------------------------
 % Write the sparse matrix out to a text file
@@ -26,7 +27,7 @@ for t = 1:numTol
     % Run the command to start the OSLOM algorithm:
     system(sprintf('./oslom_undir -f tempData.txt -w -r %g -t %f', numIters, tol));
     % Move/rename the important data to base location:
-    system(sprintf('mv tempData.txt_oslo_files/tp %s/OSLOM_tol_%g.txt', pathBase, tol));
+    system(sprintf('mv tempData.txt_oslo_files/tp %s/OSLOM_tol_%g.txt', outputPath, tol));
     % Remove unneeded files:
     system('rm -r tempData.txt_oslo_files');
 end
@@ -37,6 +38,6 @@ end
 % Delete the temporary data file:
 system('rm tempData.txt'); 
 % Return to base directory:
-cd(pathBase);
+% cd(pathBase);
 
 end

@@ -1,4 +1,4 @@
-function Output = call_OSLOM(Undir, numNodes, numIter, Tol)
+function Output = call_OSLOM(Undir, numNodes, numIter, Tol, sourceCodePath, outputPath)
 %% OSLOM
 % Input, Undir, is a sparse matrix (undirected)
 %-------------------------------------------------------------------------------
@@ -15,10 +15,10 @@ end
 %-------------------------------------------------------------------------------
 
 % Run OSLOM on the matrix:
-run_OSLOM(Undir, numIter, Tol);
+run_OSLOM(Undir, numIter, Tol, sourceCodePath, outputPath);
 
 % Process the text file outputs:
-OSLOM_final = process_OSLOM(Tol,numNodes);
+OSLOM_final = process_OSLOM(Tol,numNodes, outputPath);
 
 % Form an output structure:
 Output = struct('Name','OSLOM','Threshold',Tol,'Result',OSLOM_final{1});

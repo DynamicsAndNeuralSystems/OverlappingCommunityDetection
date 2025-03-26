@@ -1,9 +1,9 @@
-function [Output] = call_infomap(dirlist, numnodes)
+function [Output] = call_infomap(dirlist, numnodes,sourceCodePath)
 % Infomap
 % Input is Edgelist
 % Runs the Infomap method
 
-run_infomap(dirlist);
+run_infomap(dirlist,sourceCodePath);
 % 
 %Processes the output
 [Infomap_final] = process_infomap(numnodes);

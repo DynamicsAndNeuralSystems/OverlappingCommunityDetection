@@ -2,6 +2,8 @@
 
 This package facilitates the computation of a wide range of overlapping community detection algorithms, and visualization of  the results.
 
+For implementation in our preprint ['Benchmarking overlapping community detection methods for applications in human connectomics'](https://www.biorxiv.org/content/10.1101/2025.03.19.643839v1.abstract), please refer to the designated repository: [https://github.com/DynamicsAndNeuralSystems/OverlappingCommunityDetection_HCP](https://github.com/DynamicsAndNeuralSystems/OverlappingCommunityDetection_HCP).
+
 ## Compilation
 
 In the `SourceCode` directory, some algorithms need to be compiled from the terminal for your system.

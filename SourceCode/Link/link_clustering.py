@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # encoding: utf-8
 
 # link_clustering.py
@@ -113,7 +113,7 @@ class HLC:
         self.D = self.D + ( Dc12 -Dc1 - Dc2) * self.Mfactor # update partition density
 
     def single_linkage(self, threshold=None, w=None, dendro_flag=False):
-        print "clustering..."
+        print("clustering...")
         self.list_D = [(1.0,0.0)] # list of (S_i,D_i) tuples...
         self.best_D = 0.0
         self.best_S = 1.0 # similarity threshold at best_D
@@ -155,7 +155,7 @@ def similarities_unweighted(adj):
     """Get all the edge similarities. Input dict maps nodes to sets of neighbors.
     Output is a list of decorated edge-pairs, (1-sim,eij,eik), ordered by similarity.
     """
-    print "computing similarities..."
+    print("computing similarities...")
     i_adj = dict( (n,adj[n] | set([n])) for n in adj)  # node -> inclusive neighbors
     min_heap = [] # elements are (1-sim,eij,eik)
     for n in adj: # n is the shared node
@@ -165,7 +165,7 @@ def similarities_unweighted(adj):
                 inc_ns_i,inc_ns_j = i_adj[i],i_adj[j] # inclusive neighbors
                 S = 1.0 * len(inc_ns_i&inc_ns_j) / len(inc_ns_i|inc_ns_j) # Jacc similarity...
                 heappush( min_heap, (1-S,edge_pair) )
-    return [ heappop(min_heap) for i in xrange(len(min_heap)) ] # return ordered edge pairs
+    return [ heappop(min_heap) for i in range(len(min_heap)) ] # return ordered edge pairs
 
 
 def similarities_weighted(adj, ij2wij):
@@ -173,7 +173,7 @@ def similarities_weighted(adj, ij2wij):
     mapping nodes to sets of neighbors, ij2wij is a dict mapping an edge (ni,nj) tuple
     to the weight wij of that edge.  
     """
-    print "computing similarities..."
+    print("computing similarities...")
     i_adj = dict( ( n, adj[n]|set([n]) ) for n in adj ) # node -> inclusive neighbors
     
     Aij = copy(ij2wij)
@@ -194,7 +194,7 @@ def similarities_weighted(adj, ij2wij):
                 
                 S = ai_dot_aj / (n2a_sqrd[i]+n2a_sqrd[j]-ai_dot_aj) # tanimoto similarity
                 heappush( min_heap, (1-S,edge_pair) )
-    return [ heappop(min_heap) for i in xrange(len(min_heap)) ] # return ordered edge pairs
+    return [ heappop(min_heap) for i in range(len(min_heap)) ] # return ordered edge pairs
 
 
 def read_edgelist_unweighted(filename,delimiter=None,nodetype=str):
@@ -203,7 +203,7 @@ def read_edgelist_unweighted(filename,delimiter=None,nodetype=str):
     """
     adj = defaultdict(set) # node to set of neighbors
     edges = set()
-    for line in open(filename, 'U'):
+    for line in open(filename, 'r'):
         L = line.strip().split(delimiter)
         ni,nj = nodetype(L[0]),nodetype(L[1]) # other columns ignored
         if ni != nj: # skip any self-loops...
@@ -221,7 +221,7 @@ def read_edgelist_weighted(filename,delimiter=None,nodetype=str,weighttype=float
     adj = defaultdict(set)
     edges = set()
     ij2wij = {}
-    for line in open(filename, 'U'):
+    for line in open(filename, 'r'):
         L = line.strip().split(delimiter)
         ni,nj,wij = nodetype(L[0]),nodetype(L[1]),weighttype(L[2]) # other columns ignored
         if ni != nj: # skip any self-loops...
@@ -241,12 +241,12 @@ def write_edge2cid(e2c,filename,delimiter="\t"):
     
     # write edge2cid three-column file:
     f = open(filename+".edge2comm.txt",'w')
-    for e,c in sorted(e2c.iteritems(), key=itemgetter(1)):
+    for e,c in sorted(e2c.items(), key=itemgetter(1)):
         f.write( "%s%s%s%s%s\n" % (str(e[0]),delimiter,str(e[1]),delimiter,str(c2c[c])) )
     f.close()
     
     cid2edges,cid2nodes = defaultdict(set),defaultdict(set) # faster to recreate here than
-    for edge,cid in e2c.iteritems():                        # to keep copying all dicts
+    for edge,cid in e2c.items():                        # to keep copying all dicts
         cid2edges[cid].add( edge )                          # during the linkage...
         cid2nodes[cid] |= set(edge)
     cid2edges,cid2nodes = dict(cid2edges),dict(cid2nodes)
@@ -256,7 +256,7 @@ def write_edge2cid(e2c,filename,delimiter="\t"):
     f,g = open(filename+".comm2edges.txt", 'w'),open(filename+".comm2nodes.txt", 'w')
     for cid in sorted(cid2edges.keys()):
         strcid = str(c2c[cid])
-        nodes  = map(str,cid2nodes[cid])
+        nodes  = list(map(str,cid2nodes[cid]))
         edges  = ["%s,%s" % (ni,nj) for ni,nj in cid2edges[cid]]
         f.write( delimiter.join([strcid] + edges) )
         f.write( "\n" )
@@ -268,7 +268,7 @@ def write_edge2cid(e2c,filename,delimiter="\t"):
 
 def write_dendro(filename, orig_cid2edge, linkage):
     with open(filename + '.cid2edge.txt', 'w') as fout:
-        for cid, e in orig_cid2edge.iteritems():
+        for cid, e in orig_cid2edge.items():
             fout.write("%d\t%s,%s\n" % (cid, str(e[0]), str(e[1])))
 
     with open(filename + '.linkage.txt', 'w') as fout:
@@ -345,7 +345,7 @@ Output:
     is_weighted = options.is_weighted
     dendro_flag = options.dendro_flag
     
-    print "# loading network from edgelist..."
+    print("# loading network from edgelist...")
     basename = os.path.splitext(args[0])[0]
     if is_weighted:
         adj,edges,ij2wij = read_edgelist_weighted(args[0], delimiter=delimiter)
@@ -359,7 +359,7 @@ Output:
             edge2cid,D_thr = HLC( adj,edges ).single_linkage( threshold, w=ij2wij )
         else:
             edge2cid,D_thr = HLC( adj,edges ).single_linkage( threshold )
-        print "# D_thr = %f" % D_thr
+        print("# D_thr = %f" % D_thr)
         write_edge2cid( edge2cid,"%s_thrS%f_thrD%f" % (basename,threshold,D_thr), delimiter=delimiter )
     else:
         if is_weighted:
@@ -374,8 +374,8 @@ Output:
 
         f = open("%s_thr_D.txt" % basename,'w')
         for s,D in list_D:
-            print >>f, s, D
+            print(s, D, file=f)
         f.close()
-        print "# D_max = %f\n# S_max = %f" % (D_max,S_max)
+        print("# D_max = %f\n# S_max = %f" % (D_max,S_max))
         write_edge2cid( edge2cid,"%s_maxS%f_maxD%f" % (basename,S_max,D_max), delimiter=delimiter )
 

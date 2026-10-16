@@ -1,15 +1,29 @@
-function [] = run_Link(Undir)
-% Function that runs the link communities command
+function outFile = run_Link(Undir, sourceCodePath, workDir)
+% Runs the link communities command (weighted, tab-delimited input) inside the
+% existing, writable directory workDir. Returns the path to the comm2nodes file.
+% The python executable is taken from the environment variable OCDA_PYTHON if
+% set, otherwise 'python3'.
 
-% Goes into the directory required
-cd Computation_Module/SourceCode/Link;
+pythonExe = getenv('OCDA_PYTHON');
+if isempty(pythonExe)
+    pythonExe = 'python3';
+end
+scriptFile = fullfile(sourceCodePath, 'Link', 'link_clustering.py');
+if ~isfile(scriptFile)
+    error('Cannot find %s', scriptFile);
+end
 
-fid = fopen('Link.txt', 'w'); % Creates text file
-fprintf(fid, '%g\t%g\t%f\n', Undir'); % Places data within file
-fclose(fid);
+netFile = fullfile(workDir, 'Link.txt');
+writeEdgeList(netFile, Undir, true);
 
-system('./link_clustering.py Link.txt');
-system('mv *comm2nodes.txt ../../../../Link.txt');
-system('rm *.txt');
+% -w: use weights (writeEdgeList is tab-delimited, the script's default)
+runSystemCommand(sprintf('"%s" "%s" -w "%s"', pythonExe, scriptFile, netFile));
 
-cd ../../../;
+% Output is named from the input basename (Link_maxS<S>_maxD<D>.comm2nodes.txt)
+outFiles = dir(fullfile(workDir, '*comm2nodes.txt'));
+if numel(outFiles) ~= 1
+    error('Expected one comm2nodes output file in %s, found %d', workDir, numel(outFiles));
+end
+outFile = fullfile(workDir, outFiles(1).name);
+
+end

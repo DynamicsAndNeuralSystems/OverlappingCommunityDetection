@@ -1,49 +1,44 @@
-function [] = run_Gopalan(Undir, numnodes, maxIter)
-% Function that runs the Gopalan method for the network
+function outFile = run_Gopalan(Undir, numNodes, maxIter, sourceCodePath, workDir)
+% Runs the Gopalan method (SVINET) on the network, working inside workDir
+% (an existing, writable directory). Returns the path to the communities file
+% of the final (link-sampling) run.
 
-temp = Undir(:, 1:2); % Creates the matrix for the input
+svinet = fullfile(sourceCodePath, 'Gopalan', 'src', 'bin', 'svinet');
+if ~isfile(svinet)
+    error(['Cannot find the SVINET executable:\n  %s\nBuild it with ' ...
+        '"./configure && make" in %s (requires the GNU Scientific Library, GSL).'], ...
+        svinet, fullfile(sourceCodePath, 'Gopalan'));
+end
+[~, attr] = fileattrib(svinet);
+if ~attr.UserExecute
+    error('SVINET (%s) is not executable: run chmod +x on it, or rebuild it', svinet);
+end
 
-% Goes into the directory required
-cd Computation_Module/SourceCode/Gopalan;
+netFile = fullfile(workDir, 'network.txt');
+writeEdgeList(netFile, Undir, false);
 
-fid = fopen('Gopalan.txt', 'w'); % Creates text file
-fprintf(fid, '%g\t%g\n', temp'); % Places data within file
-fclose(fid);
+% svinet writes its output directories into the current directory, so work in workDir
+origDir = pwd;
+restoreDir = onCleanup(@()cd(origDir)); %#ok<NASGU>
+cd(workDir);
 
-% Runs command to find approximate number of communities
-system(sprintf('./src/bin/svinet -file Gopalan.txt -n %g -k %g -label temp -findk'...
-    , numnodes, numnodes));
-% Adds the newly generated fold to the matlab path
-addpath(genpath(pwd));
+% Find the approximate number of communities (output: n<N>-k<K>-<label>-findk/)
+runSystemCommand(sprintf('"%s" -file "%s" -n %d -k %d -label temp -findk', ...
+                                svinet, netFile, numNodes, numNodes));
+findkFile = fullfile(workDir, sprintf('n%d-k%d-temp-findk', numNodes, numNodes), ...
+                                'communities.txt');
+numComms = length(readCommunityLines(findkFile));
+if numComms == 0
+    error('SVINET found no communities');
+end
 
-% Opens up the communities text file
-fid = fopen('communities.txt', 'r');
-test = textscan(fid, '%s', 'Delimiter', '\n'); % Imports the data in
-fclose(fid);
-system(sprintf('rm -rf n%g-k%g-temp-findk', numnodes, numnodes)); % Removes the folder
+% Run the algorithm (output: n<N>-k<K>-<label>-linksampling/)
+runSystemCommand(sprintf(['"%s" -file "%s" -n %d -k %d -label Gopalan ' ...
+        '-link-sampling -max-iterations %d'], svinet, netFile, numNodes, numComms, maxIter));
+outFile = fullfile(workDir, sprintf('n%d-k%d-Gopalan-linksampling', numNodes, numComms), ...
+                                'communities.txt');
+if ~isfile(outFile)
+    error('SVINET did not produce the expected output file %s', outFile);
+end
 
-numComms = size(test{1}, 1); % Simply finds the number of rows for communities
-
-% Runs the entire command to use the algorithm on the network
-system(sprintf(...
-    './src/bin/svinet -file Gopalan.txt -n %g -k %g -label Gopalan -link-sampling -max-iterations %g'...
-    , numnodes, numComms, maxIter));
-
-% Adds the newly generated folder to the matlab path
-addpath(genpath(pwd));
-
-system('rm Gopalan.txt'); % Deletes the network textfile (not needed any more)
-
-% Creates the folder name of the output of Gopalan
-foldername = sprintf('n%g-k%g-Gopalan-linksampling', numnodes, numComms);
-
-% Moves the communities text file into the running directory
-system(sprintf('mv %s/communities.txt ../../../Gopalan.txt', foldername));
-
-% Deletes the old folder
-system(sprintf('rm -rf %s', foldername));
-
-% Goes into the directory required
-cd ../../../;
-
-fprintf('\n'); % Aesthetic value.
+end

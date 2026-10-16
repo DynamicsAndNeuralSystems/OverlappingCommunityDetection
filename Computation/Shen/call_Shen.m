@@ -11,6 +11,11 @@ function Output = call_Shen(Mat, numNodes, cliqueSize, cwThresh, lThresh)
 % Clique size, k
 % Clique weight threshold, cwThresh
 % link threshold, lThresh
+%
+% cwThresh is relative: cliques are kept if their mean link weight exceeds
+% cwThresh x (mean nonzero link weight of the network).
+% cliqueSize may be a vector; the output has Qc (Shen et al.'s overlapping modularity)
+% for each value, so that k can be chosen by maximum Qc. Result is for the first k.
 %-------------------------------------------------------------------------------
 
 %-------------------------------------------------------------------------------
@@ -28,12 +33,12 @@ end
 %-------------------------------------------------------------------------------
 
 % Runs the function for the Shen method
-Shen = run_Shen(Mat, cliqueSize, cwThresh, lThresh);
+[Shen,QcValue] = run_Shen(Mat, cliqueSize, cwThresh, lThresh);
 
 % Processes the data into the matrix
-Shen_final = process_Shen(Shen, numNodes);
+Shen_final = process_Shen(Shen(:,1), numNodes);
 
 % Places the structure data in
-Output = struct('Name','Shen','Result',Shen_final);
+Output = struct('Name','Shen','Qc',QcValue,'Result',Shen_final);
 
 end

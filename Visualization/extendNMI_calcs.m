@@ -1,94 +1,67 @@
 function Hnormalised = extendNMI_calcs(Comm1, Comm2, numNodes)
 % This function calculates the H(boldX|boldY) normalised from the two
 % inputs. This constitutes just under half of the calculations of the
-% extended NMI.
+% extended NMI (Lancichinetti, Fortunato & Kertesz, 2009).
 % lower Hnormalised means better fit
-% Brandon Lam, 16-07-2015
+% Comm1, Comm2: binary numNodes x numComms membership matrices (NaN is
+% treated as 0).
+% Note (a property of the LFK definition): a community containing all nodes or
+% no nodes has zero entropy, and is scored as unmatched (normalised value 1).
+% Brandon Lam, 16-07-2015 (vectorised version of the original loops)
 %-------------------------------------------------------------------------------
 
-% H(boldX|boldY)
-HXXYY = 0; % Initialising for loop
+% Treat NaN as no membership; double for matrix products
+Comm1 = double(Comm1 ~= 0 & ~isnan(Comm1));
+Comm2 = double(Comm2 ~= 0 & ~isnan(Comm2));
+numComm1 = size(Comm1, 2);
+numComm2 = size(Comm2, 2);
 
-for k = 1:size(Comm1, 2)
+% Pairwise probabilities, rows index X_k, columns index Y_l
+PXk1 = (sum(Comm1, 1)'/numNodes) * ones(1, numComm2); % P(Xk = 1)
+PYl1 = ones(numComm1, 1) * (sum(Comm2, 1)/numNodes); % P(Yl = 1)
+PYl0 = 1 - PYl1; % P(Yl = 0)
+PXk1Yl1 = (Comm1'*Comm2)/numNodes; % P(Xk = 1, Yl = 1)
+PXk1Yl0 = PXk1 - PXk1Yl1; % P(Xk = 1, Yl = 0)
+PXk0Yl1 = PYl1 - PXk1Yl1; % P(Xk = 0, Yl = 1)
+PXk0Yl0 = 1 - (PXk0Yl1 + PXk1Yl0 + PXk1Yl1); % P(Xk = 0, Yl = 0)
 
-    % H(Xk | Y) < Bold Y
-    HXkYY = 10000; % Number to initiate the for loop, we want the smallest one possible
-    for l = 1:size(Comm2, 2)
+% Entropy terms, with 0*log(0) = NaN replaced by 0
+temp1 = nanTo0(-PXk1Yl1.*log(PXk1Yl1));
+temp2 = nanTo0(-PXk0Yl0.*log(PXk0Yl0));
+temp3 = nanTo0(-PXk0Yl1.*log(PXk0Yl1));
+temp4 = nanTo0(-PXk1Yl0.*log(PXk1Yl0));
+temp5 = nanTo0(-PYl1.*log(PYl1));
+temp6 = nanTo0(-PYl0.*log(PYl0));
 
-        PXk1Yl1 = sum((Comm1(:, k) + Comm2(:, l)) == 2)/numNodes; % P(Xk = 1, Yl = 1)
-        PXk1Yl0 = sum(Comm1(:, k))/numNodes - PXk1Yl1; % P(Xk = 1, Yl = 0)
-        PXk0Yl1 = sum(Comm2(:, l))/numNodes - PXk1Yl1; % P(Xk = 0, Yl = 1)
-        PXk0Yl0 = 1 - (PXk0Yl1 + PXk1Yl0 + PXk1Yl1); % P(Xk = 0, Yl = 0)
+% Constraint values - need them to compare against each other
+Comp1 = nanTo0(-PXk1Yl1.*log(PXk1Yl1) - PXk0Yl0.*log(PXk0Yl0));
+Comp2 = nanTo0(-PXk0Yl1.*log(PXk0Yl1) - PXk1Yl0.*log(PXk1Yl0));
 
-        PYl1 = sum(Comm2(:, l))/numNodes; % P(Yl = 1)
-        PYl0 = 1 - PYl1; % P(Yl = 0)
+HXkYl = temp1 + temp2 + temp3 + temp4; % H(Xk, Yl)
+HYl = temp5 + temp6; % H(Yl)
+HXkgivenYl = HXkYl - HYl; % H(Xk|Yl)
 
-        % Constraint values - need them to COMPare against each other
-        Comp1 = - PXk1Yl1*log(PXk1Yl1) - PXk0Yl0*log(PXk0Yl0);
-        Comp2 = - PXk0Yl1*log(PXk0Yl1) - PXk1Yl0*log(PXk1Yl0);
-
-        % Makes sure none of them are NaN, since that is a problem with
-        % logs of 0
-        if isnan(Comp1); Comp1 = 0; end
-        if isnan(Comp2); Comp2 = 0; end
-
-        if  Comp1 > Comp2
-            % Constraint to protect from negative numbers
-
-            % Temporary calculations, due to NaNs
-            temp1 = - PXk1Yl1*log(PXk1Yl1);
-            temp2 = - PXk0Yl0*log(PXk0Yl0);
-            temp3 = - PXk0Yl1*log(PXk0Yl1);
-            temp4 = - PXk1Yl0*log(PXk1Yl0);
-
-            %% NaN fixing for HXkYl calculations
-
-            if isnan(temp1); temp1 = 0; end
-            if isnan(temp2); temp2 = 0; end
-            if isnan(temp3); temp3 = 0; end
-            if isnan(temp4); temp4 = 0; end
-
-            %% Temp calcs for HYl, and NaN fixing
-
-            temp5 = - PYl1*log(PYl1);
-            temp6 = - PYl0*log(PYl0);
-            if isnan(temp5); temp5 = 0; end
-            if isnan(temp6); temp6 = 0; end
-
-            %%
-
-            HXkYl = temp1 + temp2 + temp3 + temp4; % H(Xk, Yl)
-            HYl =  temp5 + temp6; % H(Yl)
-
-            HXkgivenYl = HXkYl - HYl; % H(Xk|Yl)
-
-            % Replaces the minimum number, to find the smallest one within this
-            % loop
-            if HXkgivenYl < HXkYY
-                HXkYY = HXkgivenYl; % H(boldX|boldY)
-            end
-        end
-    end
-
-    PXk1 = sum(Comm1(:, k))/numNodes; % P(Xk = 1)
-    PXk0 = 1 - PXk1; % P(Xk = 0)
-
-    %% HXk calc and NaN fixing
-    temp1 = - PXk1*log(PXk1);
-    temp2 = - PXk0*log(PXk0);
-    if isnan(temp1); temp1 = 0; end
-    if isnan(temp2); temp2 = 0; end
-
-    %%
-    HXk = temp1 + temp2; % H(Xk)
-
-    if HXkYY == 10000 % If no values fit the constraint
-        HXkYYnorm = 1; % H(Xk|boldY) = H(Xk)
-    else
-        HXkYYnorm = HXkYY/HXk; % H(Xk|boldY) normalised
-    end
-
-    HXXYY = HXXYY + HXkYYnorm; % Adding to the total
+% Only those pairs satisfying the constraint are candidates:
+HXkgivenYl(~(Comp1 > Comp2)) = Inf;
+HXkgivenYl(~(HXkgivenYl < 10000)) = Inf;
+if numComm2 > 0
+    HXkYY = min(HXkgivenYl, [], 2); % H(Xk|boldY)
+else
+    HXkYY = Inf(numComm1, 1);
 end
 
-Hnormalised = HXXYY/size(Comm1, 2); % H(boldX|boldY) normalised
+% H(Xk)
+PXk1 = sum(Comm1, 1)'/numNodes;
+HXk = nanTo0(-PXk1.*log(PXk1)) + nanTo0(-(1 - PXk1).*log(1 - PXk1));
+
+HXkYYnorm = HXkYY./HXk; % H(Xk|boldY) normalised
+HXkYYnorm(isinf(HXkYY)) = 1; % If no values fit the constraint, H(Xk|boldY) = H(Xk)
+
+Hnormalised = sum(HXkYYnorm)/numComm1; % H(boldX|boldY) normalised
+
+end
+
+function x = nanTo0(x)
+% Makes sure none of them are NaN, since that is a problem with logs of 0
+x(isnan(x)) = 0;
+end

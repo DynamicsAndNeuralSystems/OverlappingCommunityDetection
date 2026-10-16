@@ -1,38 +1,14 @@
-function [Output] = process_infomap(numnodes)
-% Function that processes the output of the Infomap method into the matrix
+function Output = process_infomap(cluFile,numNodes)
+% Processes an Infomap .clu file (lines "node module flow", '#' comments) into
+% a numNodes x numModules membership matrix. With --overlapping, a node may
+% appear in several modules (its membership is split equally).
+%-------------------------------------------------------------------------------
 
-cd output
-Output = cell(1, 1);
+lines = readCommunityLines(cluFile);
+A = cell2mat(cellfun(@(x)x(1:2)',lines,'UniformOutput',false)); % [node, module]
+numComms = max(A(:,2));
+Output = zeros(numNodes,numComms);
+Output(sub2ind([numNodes,numComms],A(:,1),A(:,2))) = 1;
+Output = tidyCommunities(Output);
 
-% Defines the filename for program to read
-filename = 'networki.clu';
-fid = fopen(filename); % Opens file
-% Scans the text, creating a list
-A = textscan(fid, '%d %d %d', 'CommentStyle', '#', 'Delimiter', {' ', ' ',' ', '\n'});
-B = A{1}; % Sets it as the matrix, gets rid of the cell
-C = A{2};
-A = [B,C];
-
-% Closes and deletes the textfile
-fclose(fid); 
-%     command = ['rm ' filename]; % Creates the command to delete the file
-%     system(command); % Deletes
-
-NumComms = max(A(:,2)); % Finds the number of communities
-CommMat = zeros(numnodes, NumComms); % Creates the matrix for each tolerance
-
-for j = 1:length(A) % For the entire A list
-    CommMat(A(j,1),A(j,2))=1; 
-end
-
-for j = 1:numnodes
-    % Equally distributes the communities
-    CommMat(j, :) = CommMat(j, :)/sum(CommMat(j, :));
-end
-
-Output = CommMat; % Sets it as the output
-
-cd ../
-system('rm -r output')
-cd ../../
 end

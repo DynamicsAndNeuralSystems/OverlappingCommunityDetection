@@ -4,6 +4,9 @@ function F1 = F1_overlapcalc(Input1, Input2)
 % Input2: Community structure predicted by an OCDA
 % 
 % F1 = 2*(precision*recall)/(precision+recall)
+%
+% Returns 0 when either cover has no overlapping nodes (to avoid NaNs and to
+% reflect a method's inability to identify overlapping nodes).
 %-------------------------------------------------------------------------------
 % Extracting set of overlapping nodes
 
@@ -21,9 +24,11 @@ overlap2 = ncomm2>1;
 
 % Including this condition to avoid NaNs and to reflect the method's
 % inability to identify overlapping nodes
-if sum(overlap1)==0 | sum(overlap2)==0
+if sum(overlap1)==0 || sum(overlap2)==0
     F1 = 0;
 else
     % Calling function to compute binary F1 score
     F1 = F1_calc(overlap1, overlap2);
+end
+
 end

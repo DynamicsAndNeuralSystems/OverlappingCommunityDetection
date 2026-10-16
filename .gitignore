@@ -1,3 +1,35 @@
 *.PNG
-Computation_Result.mat
 .DS_Store
+._*
+
+# Results written by OLCD_Compute
+Computation_Result.mat
+
+# Compiled objects and binaries (build locally; see README)
+*.o
+*.mex*
+SourceCode/Infomap/Infomap
+SourceCode/Gopalan/src/svinet
+SourceCode/Gopalan/src/bin/
+SourceCode/Gopalan/config.log
+SourceCode/OSLOM/Sources_2_5/louvain/a.out
+SourceCode/OSLOM/community
+SourceCode/OSLOM/convert
+SourceCode/OSLOM/hierarchy
+SourceCode/OSLOM/infomap_dir
+SourceCode/OSLOM/infomap_dir_script
+SourceCode/OSLOM/infomap_undir
+SourceCode/OSLOM/infomap_undir_script
+SourceCode/OSLOM/louvain_script
+SourceCode/OSLOM/oslom_dir
+SourceCode/OSLOM/oslom_undir
+SourceCode/OSLOM/pajek_write_dir
+SourceCode/OSLOM/pajek_write_undir
+
+# Run outputs of OSLOM
+SourceCode/OSLOM/tp
+SourceCode/OSLOM/time_seed.dat
+SourceCode/OSLOM/*.log
+SourceCode/OSLOM/*.rep
+SourceCode/OSLOM/pajek_file_*.net
+SourceCode/OSLOM/*_oslo_files/

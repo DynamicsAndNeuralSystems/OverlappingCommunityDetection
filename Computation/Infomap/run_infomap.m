@@ -1,15 +1,20 @@
-function [] = run_infomap(dirlist,sourceCodePath)
-% Function that runs the link communities command
+function clu = run_infomap(DirList,sourceCodePath,workDir)
+% Runs the Infomap binary (with overlapping modules) on a directed edge list,
+% working entirely inside the temporary directory workDir.
+% Returns the path of the output .clu file.
+%-------------------------------------------------------------------------------
 
-% Goes into the directory required
-cd(fullfile(sourceCodePath, 'Infomap'));
+infomapBinary = fullfile(sourceCodePath,'Infomap','Infomap');
+if ~isfile(infomapBinary)
+    error('Infomap binary not found at %s: build it with make in SourceCode/Infomap',infomapBinary);
+end
 
-fid = fopen('networki.txt', 'w'); % Creates text file
-fprintf(fid, '%g\t%g\t%f\n', dirlist'); % Places data within file
-fclose(fid);
+inputFile = fullfile(workDir,'networki.txt');
+writeEdgeList(inputFile,DirList,true);
+outDir = fullfile(workDir,'output');
+mkdir(outDir);
 
-system('rm -r output')
-mkdir output
+runSystemCommand(sprintf('"%s" "%s" "%s" --overlapping --clu',infomapBinary,inputFile,outDir));
+clu = fullfile(outDir,'networki.clu');
 
-system('./Infomap networki.txt output --overlapping --clu ');
- system('rm networki.txt')
+end

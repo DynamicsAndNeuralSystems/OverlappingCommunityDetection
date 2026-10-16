@@ -1,26 +1,29 @@
-function Output = call_OSLOM(Undir, numNodes, numIter, Tol, sourceCodePath, outputPath)
-%% OSLOM
-% Input, Undir, is a sparse matrix (undirected)
+function Output = call_OSLOM(Undir,numNodes,numIter,tol,sourceCodePath)
+% OSLOM (Order Statistics Local Optimization Method)
+%
+%---INPUTS:
+% Undir: undirected edge list [node1, node2, weight]
+% numNodes: number of nodes
+% numIter: number of iterations of the algorithm (default 100)
+% tol: significance tolerance (scalar, default 0.5)
+% sourceCodePath: path to SourceCode (containing OSLOM/oslom_undir)
 %-------------------------------------------------------------------------------
 
-%-------------------------------------------------------------------------------
-% Check inputs
-%-------------------------------------------------------------------------------
 if nargin < 3 || isempty(numIter)
-    numIter = 100; % Number of iterations within the algorithm
+    numIter = 100;
 end
-if nargin < 4 || isempty(Tol)
-    Tol = 0.5; % Range of tolerances
+if nargin < 4 || isempty(tol)
+    tol = 0.5;
 end
-%-------------------------------------------------------------------------------
+if nargin < 5 || isempty(sourceCodePath)
+    sourceCodePath = fullfile(fileparts(fileparts(fileparts(mfilename('fullpath')))),'SourceCode');
+end
 
-% Run OSLOM on the matrix:
-run_OSLOM(Undir, numIter, Tol, sourceCodePath, outputPath);
+% Run in a temporary directory (deleted on return):
+[workDir,cleanupObj] = makeTempDir(); %#ok<ASGLU>
+tpFile = run_OSLOM(Undir,numIter,tol,sourceCodePath,workDir);
+OSLOM_final = process_OSLOM(tpFile,numNodes);
 
-% Process the text file outputs:
-OSLOM_final = process_OSLOM(Tol,numNodes, outputPath);
-
-% Form an output structure:
-Output = struct('Name','OSLOM','Threshold',Tol,'Result',OSLOM_final{1});
+Output = struct('Name','OSLOM','Threshold',tol,'Result',OSLOM_final);
 
 end

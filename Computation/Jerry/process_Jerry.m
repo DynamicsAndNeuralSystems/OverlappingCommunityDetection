@@ -6,5 +6,10 @@ Output = zeros(numnodes, max([NodeMembership{:}]));
 
 for i = 1:numnodes
     % equally separates the nodes into communities
-    Output(i, NodeMembership{i}) = 1/length(NodeMembership{i});
+    Output(i, NodeMembership{i}) = 1;
+end
+
+% Row-normalize and drop empty communities
+Output = tidyCommunities(Output);
+
 end

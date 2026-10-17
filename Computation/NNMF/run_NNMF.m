@@ -1,19 +1,14 @@
-function NNMF = run_NNMF(AdjMat, thresh)
-% Runs the NNMF algorithm.
-% Can be adapted to include a threshold
+function NNMF = run_NNMF(AdjMat,thresh)
+% Runs the NNMF algorithm (commDetNMF), then thresholds the membership matrix
+% independently at each threshold. Returns a cell with one matrix per threshold.
 %-------------------------------------------------------------------------------
 
-NNMF = cell(length(thresh), 1);
+P = commDetNMF(AdjMat);
 
-% Performs NNMF:
-temp = commDetNMF(AdjMat);
-
-for i = thresh
-    temp = temp.*(temp > i); % Deletes values that are below the threshold    
-    for x = 1:length(AdjMat)
-        % Extends all other values to make up for the missing values
-        NNMF{thresh==i}(x, :) = temp(x, :)/sum(temp(x, :));
-    end
+NNMF = cell(length(thresh),1);
+for i = 1:length(thresh)
+    % Remove memberships below threshold; unassigned nodes get zero rows
+    NNMF{i} = tidyCommunities(P.*(P > thresh(i)));
 end
 
 end

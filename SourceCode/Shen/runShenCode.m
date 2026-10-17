@@ -1,5 +1,10 @@
-function nodeLabels = runShenCode(AdjMat, cSize, cwThresh, lThresh)
+function [nodeLabels,QcValues] = runShenCode(AdjMat, cSize, cwThresh, lThresh)
 % Function that runs the Shen method on the matrix
+% cSize can be a vector of clique sizes k; nodeLabels has one column per k, and
+% QcValues(i) is Shen et al.'s overlapping modularity Qc for cSize(i) (choose k by max Qc).
+% cwThresh is RELATIVE: for weighted networks, maximal cliques are kept only if their mean
+% link weight exceeds cwThresh * (mean weight of all nonzero links in the network),
+% so the threshold does not depend on the scale of the weights.
 % Adapted from code by Ben Fulcher
 %-------------------------------------------------------------------------------
 
@@ -12,7 +17,7 @@ k_r = cSize; % Clique size
 % Threshold weighted networks
 if any(A(A~=0)~=1); % some non-1, non-0 entries (i.e., a weighted network)
     isWeighted = true; % a weighted network
-    fprintf(1,'ZOMG it''s a weighted network...!\n');
+    fprintf(1,'Weighted network detected.\n');
     Aw = A; % keep the weighted version as Aw
     A = (A > Threshold);
     fprintf(1,'After thresholding at %f, we have a link density ~ %f\n',Threshold, ...
@@ -54,8 +59,11 @@ fprintf(1,'We found %u maximal cliques in the network\n',size(allMaxClique,2));
 % ------------------------------------------------------------------------------
 % Only include maximal cliques with a minimum weight
 if isWeighted && (cliqueWeightThreshold > 0)
-    fprintf(1,'Experimenting with applying a clique weight threshold of %f\n', ...
-        cliqueWeightThreshold);
+    % The threshold is relative to the mean nonzero link weight (scale-independent):
+    meanLinkWeight = mean(Aw(Aw~=0));
+    absCliqueThreshold = cliqueWeightThreshold*meanLinkWeight;
+    fprintf(1,['Applying a relative clique weight threshold of %f x mean nonzero link weight ' ...
+        '(%f) = %f\n'],cliqueWeightThreshold,meanLinkWeight,absCliqueThreshold);
     numCliques = size(allMaxClique,2);
     meanCliqueWeight = zeros(numCliques,1);
     for i = 1:numCliques
@@ -64,9 +72,9 @@ if isWeighted && (cliqueWeightThreshold > 0)
         justLinks = theLinks(triu(logical(ones(sum(theNodes))),+1)); % List of link weights in this clique
         meanCliqueWeight(i) = mean(justLinks); % (arithmetic) mean link weight within the clique
     end
-    keepCliques = (meanCliqueWeight > cliqueWeightThreshold);
+    keepCliques = (meanCliqueWeight > absCliqueThreshold);
     fprintf(1,'Keeping %u / %u maximal cliques with mean link weight exceeding %f!\n', ...
-        sum(keepCliques),numCliques,cliqueWeightThreshold);
+        sum(keepCliques),numCliques,absCliqueThreshold);
     allMaxClique = allMaxClique(:,keepCliques);
 end
 
@@ -219,4 +227,5 @@ for ki = 1:length(k_r)
     end
     
     QcValues(ki) = ComputeQc(ConvertNodeLabelsToCover(nodeLabels(:,ki)),A);
+    fprintf(1,'Qc = %f for k = %u\n',QcValues(ki),k);
 end

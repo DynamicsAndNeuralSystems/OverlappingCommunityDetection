@@ -1,94 +1,118 @@
 # Empirical comparison of overlapping community detection algorithms
 
-This package facilitates the computation of a wide range of overlapping community detection algorithms, and visualization of  the results.
+This package facilitates the computation of a wide range of overlapping community detection algorithms (OCDAs), and visualization of the results.
 
-For implementation in our preprint ['Benchmarking overlapping community detection methods for applications in human connectomics'](https://www.biorxiv.org/content/10.1101/2025.03.19.643839v1.abstract), please refer to the designated repository: [https://github.com/DynamicsAndNeuralSystems/OverlappingCommunityDetection_HCP](https://github.com/DynamicsAndNeuralSystems/OverlappingCommunityDetection_HCP).
+For the implementation used in our preprint ['Benchmarking overlapping community detection methods for applications in human connectomics'](https://www.biorxiv.org/content/10.1101/2025.03.19.643839v1.abstract), please refer to the designated repository: [https://github.com/DynamicsAndNeuralSystems/OverlappingCommunityDetection_HCP](https://github.com/DynamicsAndNeuralSystems/OverlappingCommunityDetection_HCP).
 
-## Compilation
+## Setup
 
-In the `SourceCode` directory, some algorithms need to be compiled from the terminal for your system.
+Run `startup` (from any directory) to add the toolbox to the MATLAB path.
 
-1. In a terminal, navigate to `SourceCode/OSLOM` and run `./compile_all.sh', and then check that the result works. See [here](http://www.oslom.org/software.htm) for more information.
-2. Now, navigate to `Source/Infomap`
-   1. Run `make clean` and execute and terminal suggested code.
-   2. Now run `make` 
+Methods implemented in MATLAB (SLPA, Clique, NNMF, WSBM) need nothing else.
+The other methods call external programs, which are not included as binaries and must be compiled for your system:
+
+1. **OSLOM**: in a terminal, navigate to `SourceCode/OSLOM` and run `./compile_all.sh`.
+   Only `oslom_undir` is needed; errors compiling the other programs (pajek, louvain, infomap) can be ignored.
+   See [the OSLOM website](http://www.oslom.org/software.htm) for more information.
+2. **Infomap**: navigate to `SourceCode/Infomap` and run `make clean` and then `make`.
+3. **SVINET** (Gopalan): requires the [GSL](https://www.gnu.org/software/gsl/) library.
+   Navigate to `SourceCode/Gopalan` and run `./configure` and then `make` (see `SourceCode/Gopalan/README.md` for setting library paths on macOS).
+4. **Link communities**: requires Python 3.
+   MATLAB calls `python3` by default; to use a different interpreter, set the environment variable `OCDA_PYTHON` (e.g., `setenv('OCDA_PYTHON','/opt/homebrew/anaconda3/bin/python3')`).
+5. **WSBM** (optional speed-up): run `InstallMEXFiles` in `SourceCode/Clauset` to compile its MEX files.
 
 ## Computation
 
-### Usage/Syntax:
-
-`Computation` computes a range of community-detection algorithms on a given network, as:
+### Usage
 
 ```matlab
-Final = OLCD_Compute(networkAdj,Methods,isBenchmark,benchFileName);
+[Final,computationTimes] = OLCD_Compute(networkAdj,methodList,isBenchmark,benchmarkFileName,sourceCodePath,outputPath);
 ```
 
-INPUTS:
+Inputs (all but the first are optional):
 
-- `networkAdj` -	Can be an adjacency matrix, (matrix) list of undirected links, or (matrix) list of directed links.
-- `Methods` -	Cells of the names of methods to be computed.
-- `isBenchmark` - Logical: `false` for no benchmark (default), or `true` for benchmark.
-- `benchFileName` - String name of the text file within which the benchmark communities are defined
+- `networkAdj`: an adjacency matrix, or an edge list as a 3-column matrix `[node1, node2, weight]` with positive-integer node ids.
+  An edge list is treated as undirected if `node1 <= node2` in every row, and as directed otherwise.
+  A 3x3 input is ambiguous and is treated as an adjacency matrix (with a warning).
+- `methodList`: cell array of method names (see below).
+- `isBenchmark`: `true` if the network has known (benchmark) communities (default `false`).
+- `benchmarkFileName`: text file defining the benchmark communities, one line per node: `node comm1 comm2 ...` (as produced by the LFR benchmark generator).
+- `sourceCodePath`: path to the `SourceCode` directory (default: `SourceCode` in this toolbox).
+- `outputPath`: directory in which results are saved (default: the current directory).
 
-OUTPUTS:
+Outputs:
 
-- `Final` (structure) contains all data from the algorithms (Method name, community result).
-- Results are also saved to `Computation_Result.mat`, which can be visualized using code in the Visualization module.
+- `Final` (structure) contains the network, the benchmark communities (if provided), and one field per method output.
+  Each method output is a structure with the method's `Name`, its parameters, and its `Result`.
+- `computationTimes` (structure) gives the computation time (in seconds) of each method output.
+- Results are also saved to `Computation_Result.mat` in `outputPath`, which can be visualized using code in `Visualization`.
+
+### Methods
+
+| Name in `methodList` (alias) | Method | Parameters swept by `OLCD_Compute` | Output field names |
+| --- | --- | --- | --- |
+| `'Infomap'` | Infomap (with `--overlapping`) | – | `Infomap` |
+| `'OSLOM'` | Order Statistics Local Optimization Method | p-value tolerance 0.1, 0.2, …, 0.9 | `OSLOM_10`, …, `OSLOM_90` |
+| `'NNMF'` | Non-negative matrix factorization | membership threshold 0.1–0.4 | `NNMF_10`, …, `NNMF_40` |
+| `'SLPA'` (`'Jerry'`) | Speaker–listener label propagation | – | `Jerry` |
+| `'Clique'` (`'Shen'`) | Clique-based method of Shen et al. (2009) | clique size 3, 4, 5, 6, 7, 9 | `Clique_3`, …, `Clique_9` |
+| `'Link'` | Link communities (Ahn et al., 2010) | proportion of weakest links removed: 0, 0.01, 0.1 | `Link_prec_0`, … |
+| `'SVINET'` (`'Gopalan'`) | Stochastic variational inference for the MMSB (Gopalan & Blei, 2013) | proportion of weakest links removed: 0, 0.1, 0.2, 0.3 | `Gopalan_prec_0`, … |
+| `'WSBM'` (`'Clauset'`) | Weighted stochastic block model (Aicher et al., 2014), number of blocks chosen by maximum log-evidence over k = 2–8. Gives a *non-overlapping* partition. | – | `Clauset` |
+
+### Algorithm output
+
+Each method's `Result` is a matrix in which each row is a node and each column is a community.
+Each node's memberships sum to 1, split equally across the communities it belongs to (or 0 if the method left the node unassigned).
+Empty communities are removed.
 
 ### Structure
 
-Each community detection method has its own directory within the `Computation_Module` directory.
-Each directory, `MethodName`, contains three files:
+Each community detection method has its own directory in `Computation`, which contains three files:
 
-- `call_[MethodName]` - This function is called by the overarching `computation.m` function. It simplifies the entire process down to one line.
-- `run_[MethodName]` - This function is called to do the actual calculations; running the algorithm and spitting out its output (Note: If calculations need to be hard coded to specific directories, this is done within this `.m` file.
-  For examples, view `run_Gopalan`).
-- `process_[MethodName]` - Called after running the algorithm, as this function will take the algorithm output and convert it to the universal matrix format, explained below.
+- `call_[MethodName]`: called by `OLCD_Compute`; it runs the method and processes its output in one line.
+- `run_[MethodName]`: runs the algorithm (for external programs, input and output files are written to a temporary directory).
+- `process_[MethodName]`: converts the algorithm's output into the standard matrix format described above.
 
-In addition, source code for each algorithm is in a directory in the `SourceCode` directory.
-And scripts for converting between the three types of inputs are in `Conversions`.
+In addition:
 
-### Algorithm Output
-
-After the `process_[Method]` function is run, the output should be in a matrix format, where each row is a node, and each column is a community.
+- Source code for each algorithm is in a directory in `SourceCode`.
+- Functions for converting between adjacency matrices and edge lists are in `Computation/Conversions`.
+- Shared utilities (temporary directories, running external commands, reading community files, tidying the output matrix) are in `Computation/Helpers`.
 
 ### Adding a new method
 
-If you wish to add a module, here is how to do so:
-
-1. Place source code of the algorithm within its own named directory inside  the `Computation_Module/SourceCode` directory.
-2. Code `run_[Method]` - This should take the network (in whatever format that is needed) and parameters, and output a final community result.
-   This output does not have to be in the matrix format, the processing function should do that.
-3. Code `process_[Method]` - This will take the output of the previous step as an input, and then output the matrix format for the visualizer.
-4. Code `call_[Method]` - This is essentially a function that calls both the previous two functions, and therefore can be called in one line.
-5. Add the function created in Step 4 into `Computation`, in the switch case at the later half of the code. Look to the other methods coded for structure.
-   This can also be altered to loop multiple times for different variables.
-6. Congratulations, if it gives an output then your method has been incorporated successfully!
-
+1. Place the source code of the algorithm in its own directory inside `SourceCode`.
+2. Write `run_[Method]`: this should take the network (in whatever format is needed) and parameters, and output a community result (in any format).
+3. Write `process_[Method]`: this takes the output of the previous step and converts it to the standard matrix format (the helpers `readCommunityLines`, `communitiesToMatrix`, and `tidyCommunities` may be useful).
+4. Write `call_[Method]`: this calls the previous two functions, so the method can be run in one line.
+5. Add a case for the method in the `switch` statement of `OLCD_Compute` (looping over parameter values if needed), and add its name to the list of valid method names.
 
 ## Visualization
 
-### Usage/Syntax:
+### Usage
 
 ```matlab
-OLCD_Visualization(Methods)
+OLCD_Visualization(Methods,resultsFile,cmap)
 ```
 
-`Methods` is a cell array of methods to be visualized.
-If benchmark exists, and you want to visualize it as well, then include `'Benchmark'` in the list.
+- `Methods`: cell array of methods to plot, matched either by method name (e.g., `'NNMF'` plots all NNMF thresholds) or by output field name (e.g., `'NNMF_20'`).
+  Include `'Benchmark'` to plot the benchmark communities.
+  Default: all outputs in the results file.
+- `resultsFile`: results file produced by `OLCD_Compute` (default `'Computation_Result.mat'`).
+- `cmap`: colormap name, function handle, or matrix (default `'parula'`).
 
-### File Structure
+Nodes are ordered by the benchmark communities (if present), and otherwise by the first method plotted.
 
-- `Visualization` - This function is the overarching code that plots the network, as well as communities to compare their results.
-- `Node_Reorder` - This moves the labeling of communities to the largest being number 1.
-  This allows for a somewhat easier view of the communities, as the colours within the visualiser depend on the labels.
-- `Node_Sorter` - This reorders the nodes according to the benchmark (so that communities are easier to see).
+### Files
 
-Unused code (so far)
+- `OLCD_Visualization`: plots the network adjacency matrix alongside the communities of each method, for comparison.
+- `Node_Reorder`: orders each method's communities from largest to smallest (colors depend on the community labels).
+- `Node_Sorter`: orders the nodes according to the benchmark communities, so that communities are easier to see.
 
-- `NMI_calc` - Given two community results, will spit out a number between 0 and 1 (NMI calculation).
-  Does not work with overlapping communities.
-* `ENMI_calc` & `extendNMI_calcs` are functions for calculating the NMI for overlapping communities.
-  To use, just input the two community matrices into `ENMI_calc`
-* `F1_overlapcalc` extracts the set of overlapping nodes from two overlapping community structures and computes their F1 score using F1_calc.
-  To use, input the two community structures into F1_overlapcalc.
+### Comparing communities
+
+- `ENMI_calc`: the extended normalized mutual information for overlapping communities (Lancichinetti, Fortunato & Kertész, 2009), between two community matrices (uses `extendNMI_calcs`).
+- `NMI_calc`: normalized mutual information between two non-overlapping community matrices (errors on overlapping input).
+- `NMI_calc_vecs`: normalized mutual information between two vectors of community labels.
+- `F1_overlapcalc`: extracts the set of overlapping nodes from two community matrices and computes the F1 score for recovering them (using `F1_calc`).

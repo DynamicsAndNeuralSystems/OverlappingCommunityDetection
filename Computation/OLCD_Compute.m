@@ -1,130 +1,162 @@
-function Final = OLCD_Compute(networkAdj,methodList,isBenchmark,benchmarkFileName,sourceCodePath, outputPath)
+function [Final,computationTimes] = OLCD_Compute(networkAdj,methodList,isBenchmark,benchmarkFileName,sourceCodePath,outputPath)
 % Computes a set of (overlapping) community-detection algorithms for a given input network
 %
 %---INPUTS:
-% input: adjacency matrix (or list of links in format ''node1, node2, weight'' as matrix)
-% methodList: cell of strings labeling the methods to be evaluated
-% isBenchmark: set true for a benchmark network
-% benchmarkFileName: name of a text file containing benchmark node annotations
+% networkAdj: adjacency matrix, or an edge list as a 3-column matrix
+%             [node1, node2, weight] (node ids must be positive integers).
+%             An edge list is treated as undirected if node1 <= node2 for all
+%             rows, otherwise as directed.
+%             NOTE: a 3x3 input is ambiguous (a 3-edge list or a 3-node matrix)
+%             and is always treated as an adjacency matrix (with a warning).
+% methodList: cell of strings labeling the methods to be evaluated (default
+%             {'SLPA','Clique'}). Valid names (aliases in brackets):
+%             'Infomap', 'OSLOM', 'NNMF', 'Link', 'SLPA' ('Jerry'),
+%             'Clique' ('Shen'), 'WSBM' ('Clauset'), 'SVINET' ('Gopalan').
+% isBenchmark: set true for a benchmark network (default false)
+% benchmarkFileName: text file of benchmark node annotations (required if
+%                    isBenchmark; each line is "node comm1 comm2 ...")
+% sourceCodePath: path to the SourceCode directory (default: SourceCode in the
+%                 toolbox root)
+% outputPath: directory in which Computation_Result.mat is saved (default pwd)
 %
-%%---IMPORTANT NOTE:
-% Before running this program, there are a few libraries that need to be
-% loaded:
-%   Gopalan - gsl and gcc libraries need to be loaded
+%---OUTPUTS:
+% Final: structure with the network, the benchmark (if any), and one field per
+%        method run (e.g., Infomap, OSLOM_50, NNMF_10, Clique_5, Jerry, ...)
+% computationTimes: structure with the computation time (seconds) of each
+%                   method field in Final
+%
+%---IMPORTANT NOTE:
+% Before running, some libraries must be available:
+%   SVINET (Gopalan) - gsl and gcc libraries need to be loaded
 %   Link - requires python to be loaded
+%   OSLOM, Infomap - binaries must be built in SourceCode (see compile_all.sh)
 
 %-------------------------------------------------------------------------------
 %% Check Inputs
 %-------------------------------------------------------------------------------
 if nargin < 1 || isempty(networkAdj)
-    error('Error: Please input a matrix');
+    error('Please input a matrix');
 end
-
 if nargin < 2 || isempty(methodList)
-    methodList = {'Jerry', 'Shen'};
+    methodList = {'Jerry','Shen'};
 end
-
+if ischar(methodList) || isstring(methodList)
+    methodList = cellstr(methodList);
+end
 if nargin < 3 || isempty(isBenchmark)
     isBenchmark = false; % input is real data
 end
-
-if isBenchmark == 1 && isempty(benchmarkFileName)
-    error('Error: Please input filename of benchmark community file');
+if nargin < 4
+    benchmarkFileName = '';
 end
+if isBenchmark && isempty(benchmarkFileName)
+    error('Please input filename of benchmark community file');
+end
+if nargin < 5 || isempty(sourceCodePath)
+    sourceCodePath = fullfile(fileparts(fileparts(mfilename('fullpath'))),'SourceCode');
+end
+if nargin < 6 || isempty(outputPath)
+    outputPath = pwd;
+end
+
+% Validate method names (aliases map to canonical names):
+aliasNames = {'Jerry','SLPA','Shen','Clique','Clauset','WSBM','Gopalan','SVINET','Infomap','OSLOM','NNMF','Link'};
+canonicalNames = {'Jerry','Jerry','Shen','Shen','Clauset','Clauset','Gopalan','Gopalan','Infomap','OSLOM','NNMF','Link'};
+[isValid,ix] = ismember(methodList,aliasNames);
+if ~all(isValid)
+    error('Unknown method(s): %s. Valid names: %s',strjoin(methodList(~isValid),', '),strjoin(aliasNames,', '));
+end
+methodList = canonicalNames(ix);
 
 %-------------------------------------------------------------------------------
 %% Converting the input into all the formats
 %-------------------------------------------------------------------------------
-
 if size(networkAdj,1) == size(networkAdj,2) % square adjacency matrix
+    if size(networkAdj,1) == 3
+        warning('A 3x3 input is ambiguous (3-edge list or 3-node matrix): treating as an adjacency matrix');
+    end
     Mat = networkAdj;
-    numNodes = size(Mat,1); % Number of nodes
+    numNodes = size(Mat,1);
 
-    DirList = Mat2Direct(Mat,numNodes); % Calls function to convert matrix to directed list
-    Undir = Mat2Undir(Mat); % Calls function to make undirected networkAdj
+    DirList = Mat2Direct(Mat,numNodes); % directed edge list
+    Undir = Mat2Undir(Mat); % undirected edge list
 
-elseif size(networkAdj,2)==3 % List format
-    if sum(networkAdj(:,1) > networkAdj(:,2)) == 0 % (undirected)
+elseif size(networkAdj,2) == 3 % edge list
+    nodeIds = networkAdj(:,1:2);
+    if any(nodeIds(:) < 1) || any(nodeIds(:) ~= round(nodeIds(:)))
+        error('Edge-list node ids must be positive integers');
+    end
+    numNodes = max(nodeIds(:));
+    if all(networkAdj(:,1) <= networkAdj(:,2)) % undirected
         Undir = networkAdj;
-        numNodes = max(max(Undir(:,1:2))); % Calculates the number of nodes in the system
-
-        DirList = Undir2Direct(Undir); % Converts undirected to directed list
-        Mat = Direct2Matrix(DirList,numNodes); % Calls function to make matrix networkAdj
-    else % If directed
+        DirList = Undir2Direct(Undir);
+        Mat = Direct2Matrix(DirList,numNodes);
+    else % directed
         DirList = networkAdj;
-        numNodes = max(max(DirList(:,1:2))); % Calculates the number of nodes in the system
-
-        Mat = Direct2Matrix(DirList,numNodes); % Calls function to make matrix input
-        Undir = Mat2Undir(Mat); % Calls function to make undirected input
+        Mat = Direct2Matrix(DirList,numNodes);
+        Undir = Mat2Undir(Mat);
     end
 else
-    error('Error: Input adjacency matrix is not one of the accepted formats');
+    error('Input network is not one of the accepted formats');
 end
 
-% So now we have 3 representations of the same object:
+% So now we have 3 representations of the same network:
 % Mat: adjacency matrix (full)
-% DirList: list of edges
-% Undir: **NOT YET** undirected transformation of matrix (either edge exists counted as link)
+% DirList: directed edge list
+% Undir: undirected edge list (weights (Aij+Aji)/2)
 
 %-------------------------------------------------------------------------------
 %% Creating the final structure
-% -- all the results of the specified algorithms is stored in a single structure
-% called 'Final' (along with benchmark if specified, and data of run), and adjacency matrix
 %-------------------------------------------------------------------------------
-Final = struct('Date', date);
-Final.Network = Mat; % Saves the matrix of the network
+Final = struct('Date',date);
+Final.Network = Mat;
+computationTimes = struct();
 
 %-------------------------------------------------------------------------------
 %% Benchmark
 %-------------------------------------------------------------------------------
 if isBenchmark
-    % Processes the data from the benchmark
     BenchComm = process_Benchmark(benchmarkFileName,numNodes);
-
-    % Places it in the final structure data
     Final.Benchmark = struct('Name','Benchmark','Result',BenchComm);
 end
 
 %-------------------------------------------------------------------------------
 %% Running Functions
 %-------------------------------------------------------------------------------
-
-
 numMethods = length(methodList);
 fprintf(1,'Looping across %u OCDA methods.\n',numMethods);
 for m = 1:numMethods
-    theMethod = methodList{m};
-    switch theMethod
+    switch methodList{m}
         case 'Clauset'
-            Final.Clauset = call_Clauset(DirList, numNodes);
+            runMethod('Clauset',@()call_Clauset(DirList,numNodes));
         case 'Infomap'
-            Final.Infomap = call_infomap(DirList, numNodes, sourceCodePath);
+            runMethod('Infomap',@()call_infomap(DirList,numNodes,sourceCodePath));
         case 'Gopalan'
-            for prec = [0 0.1 0.2 0.3]
-                Final.(sprintf('Gopalan_prec_%g', prec*100)) = ...
-                    call_Gopalan(Undir, numNodes, 1000, prec);
+            for prec = [0,0.1,0.2,0.3]
+                runMethod(sprintf('Gopalan_prec_%d',round(prec*100)), ...
+                    @()call_Gopalan(Undir,numNodes,1000,prec,sourceCodePath));
             end
         case 'Jerry'
-            Final.Jerry = call_Jerry(Mat, numNodes, 120, 0.09, 1, 'probabilistic');
+            runMethod('Jerry',@()call_Jerry(Mat,numNodes,120,0.09,1,'probabilistic'));
         case 'Link'
             for prec = [0,0.01,0.1]
-                Final.(sprintf('Link_prec_%g', prec*100)) = ...
-                    call_Link(Undir, numNodes, prec);
+                runMethod(sprintf('Link_prec_%d',round(prec*100)), ...
+                    @()call_Link(Undir,numNodes,prec,sourceCodePath));
             end
         case 'NNMF'
             for thresh = [0.1,0.2,0.3,0.4]
-                Final.(sprintf('NNMF_%g', thresh*100)) = ...
-                    call_NNMF(Mat, thresh);
+                runMethod(sprintf('NNMF_%d',round(thresh*100)),@()call_NNMF(Mat,thresh));
             end
         case 'OSLOM'
-            for tol = 0.1:0.1:1
-                Final.(sprintf('OSLOM_%g', tol*100)) = ...
-                    call_OSLOM(Undir, numNodes, 100, tol, sourceCodePath, outputPath);
+            % (tol = 1 is degenerate: every module passes significance)
+            for tol = 0.1:0.1:0.9
+                runMethod(sprintf('OSLOM_%d',round(tol*100)), ...
+                    @()call_OSLOM(Undir,numNodes,100,tol,sourceCodePath));
             end
         case 'Shen'
-            for clique_size = [3,4,5,6,7,9]
-                Final.(sprintf('Clique_%g', clique_size)) = ...
-                    call_Shen(0.5*(Mat+Mat'), numNodes, clique_size, 1.3, 0);
+            for cliqueSize = [3,4,5,6,7,9]
+                runMethod(sprintf('Clique_%d',cliqueSize), ...
+                    @()call_Shen(0.5*(Mat+Mat'),numNodes,cliqueSize,1.3,0));
             end
     end
 end
@@ -132,8 +164,16 @@ end
 %-------------------------------------------------------------------------------
 %% Saving data
 %-------------------------------------------------------------------------------
-fileName = fullfile(outputPath, 'Computation_Result.mat');
-save(fileName, 'Final');
+fileName = fullfile(outputPath,'Computation_Result.mat');
+save(fileName,'Final','computationTimes');
 fprintf('All computation is complete! Saved as %s.\n',fileName);
+
+%-------------------------------------------------------------------------------
+    function runMethod(fieldName,callFunction)
+        % Runs a method, storing its result and computation time
+        methodTimer = tic;
+        Final.(fieldName) = callFunction();
+        computationTimes.(fieldName) = toc(methodTimer);
+    end
 
 end

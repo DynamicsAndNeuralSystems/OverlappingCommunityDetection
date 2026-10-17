@@ -1,6 +1,8 @@
 function nodeMembership = runJerryCode(adjMatrix,numIter,Thresholds,isBlind,listeningRule,numNodes)
 % Overlapping Community Detection (SLPA) algorithm
-% 
+% isBlind: if true, listeners only sample neighbors' memory from previous iterations;
+% if false, they may also use labels already learned earlier in the current sweep.
+% Labels below the threshold are dropped, but each node keeps its most frequent label.
 
 %-------------------------------------------------------------------------------
 %% Check inputs and set defaults
@@ -54,6 +56,8 @@ nodeMemory(:,1) = (1:numNodes)';
 for i = 2:max(numIter)
     % Determine the permutation to shuffle through nodes:
     ix = randperm(numNodes);
+    nodePosition = zeros(1,numNodes);
+    nodePosition(ix) = 1:numNodes; % position of each node in this sweep
     for j = 1:numNodes
         % We focus on this node:
         theNode = ix(j);
@@ -64,39 +68,42 @@ for i = 2:max(numIter)
         numNeighbors = length(Neighbors); % the number of neighbors
         
         
+        % Isolated nodes have nobody to listen to: keep the previous label
+        if numNeighbors==0
+            nodeMemory(theNode,i) = nodeMemory(theNode,i-1);
+            continue
+        end
+
         % ---LISTENING RULE---
-        
+        % Column i of nodeMemory is only filled in for nodes already updated in this
+        % sweep (it is still 0 for the rest), so it may only be sampled for those nodes.
+        % Blind: only ever sample from previous iterations (columns 1..i-1).
+        % Not blind: for neighbors already updated this sweep also include column i.
+
         switch listeningRule
             case 'majority'
                 % Pick the most popular label (weighted)
-                
+
                 % 1) Get a random draw from each neighbor's memory:
                 neighborMemorySample = zeros(numNeighbors,1);
-                if isBlind
-                    % Compute samples of neighbors based on previous iterations
-                    % (even if a node has already received a new label during this iteration)
-                    r = randi(i-1,[numNeighbors,1]); % Pick a random element from each neighbor
-                    for k = 1:numNeighbors
-                        neighborMemorySample(k) = nodeMemory(Neighbors(k),randi(i-1)); % nodeMemory(k,r(k));
-                    end
-                else
-                    for k = 1:numNeighbors
-                        if find(ix==Neighbors(k),1) < j
-                            neighborMemorySample(k) = nodeMemory(Neighbors(k),randi(i)); % nodeMemory(k,r(k));
-                        else % already selected this turn - use the new part of memory
-                            neighborMemorySample(k) = nodeMemory(Neighbors(k),randi(i-1)); % nodeMemory(k,r(k));
-                        end
+                for k = 1:numNeighbors
+                    if ~isBlind && nodePosition(Neighbors(k)) < j
+                        % Already updated this sweep: its new label (column i) is available
+                        neighborMemorySample(k) = nodeMemory(Neighbors(k),randi(i));
+                    else
+                        % Blind, or not yet updated this sweep: previous iterations only
+                        neighborMemorySample(k) = nodeMemory(Neighbors(k),randi(i-1));
                     end
                 end
-                
-                % 2) Pick a number from this sample, by weighting each by the link weights:
-                % Determine the most popular sample from the neighbors
+
+                % 2) Determine the most popular sample from the neighbors, weighting
+                % each by the link weights:
                 uniqueLabels = unique(neighborMemorySample);
                 labelWeights = zeros(length(uniqueLabels),1);
                 for k = 1:length(uniqueLabels)
                     labelWeights(k) = sum(neighborLinkWeights(neighborMemorySample==uniqueLabels(k)));
                 end
-                
+
                 % 3) Pick the most popular (weighted) label:
                 % If multiple values have maximum weight, select one at random
                 mostPopularLabel = uniqueLabels(labelWeights==max(labelWeights));
@@ -106,22 +113,29 @@ for i = 2:max(numIter)
                     % Select one (from the most popular labels) at random
                     nodeMemory(theNode,i) = mostPopularLabel(randi(length(mostPopularLabel)));
                 end
-                
+
             case 'probabilistic'
                 % Get a random draw from the memory of a randomly selected (weighted)
                 % neighbor's memory
-                
+
                 % First, pick a random neighbor:
                 r = rand*sum(neighborLinkWeights);
                 theNeighbor = Neighbors(find(r <= cumsum(neighborLinkWeights),1,'first'));
-                
+                if isempty(theNeighbor) % guard against floating-point round-off
+                    theNeighbor = Neighbors(end);
+                end
+
                 % Pick randomly from that node's memory
-                if isBlind % Potentially pick from current iteration
+                if ~isBlind && nodePosition(theNeighbor) < j
+                    % Already updated this sweep: can also pick from the current iteration
                     nodeMemory(theNode,i) = nodeMemory(theNeighbor,randi(i));
                 else % Pick only from previous iterations
                     nodeMemory(theNode,i) = nodeMemory(theNeighbor,randi(i-1));
                 end
         end
+
+        % A label of 0 (an unfilled memory slot) must never be spoken:
+        assert(nodeMemory(theNode,i) > 0,'Invalid (zero) label entered memory')
     end
 end
 
@@ -155,12 +169,16 @@ numComms = zeros(numThresholds,1);
 
 for i = 1:numThresholds
     for j = 1:numNodes
-        aboveThreshold = nodeHistograms{j}(2,:)/numIter >= Thresholds(i);
-        if sum(aboveThreshold) > 0
-            nodeMembership{j,i} = nodeHistograms{j}(1,aboveThreshold);
-        else
-            nodeMembership{j,i} = [];
+        % As in the original SLPA (Xie, Szymanski & Liu, 2011), labels with frequency
+        % below the threshold are removed, but each node keeps at least its most
+        % frequent label:
+        labelFreq = nodeHistograms{j}(2,:)/max(numIter);
+        aboveThreshold = (labelFreq >= Thresholds(i));
+        if ~any(aboveThreshold)
+            [~,mostFrequent] = max(labelFreq);
+            aboveThreshold(mostFrequent) = true;
         end
+        nodeMembership{j,i} = nodeHistograms{j}(1,aboveThreshold);
     end
     allCommunityLabels = horzcat(nodeMembership{:,i});
     

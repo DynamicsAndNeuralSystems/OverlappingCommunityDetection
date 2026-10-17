@@ -1,43 +1,27 @@
-function run_OSLOM(Undir, numIters, Tol, sourceCodePath, outputPath)
-% Run the OSLOM algorithm (in Linux commandline) from Matlab
+function tpFile = run_OSLOM(Undir,numIters,tol,sourceCodePath,workDir)
+% Runs the OSLOM binary (undirected, weighted) on an edge list at a single
+% tolerance, working entirely inside the temporary directory workDir.
+% Returns the path of the output file listing the modules found.
 %-------------------------------------------------------------------------------
 
-%-------------------------------------------------------------------------------
-% Write data into the OSLOM directory
-%-------------------------------------------------------------------------------
-% pathBase = GiveMeBaseDir();
-% pathBase = fileparts(fileparts(pwd));
-% filePath = fullfile('SourceCode','OSLOM'); % File path from module to OSLOM code
-cd(fullfile(sourceCodePath, 'OSLOM')); % Goes into the pathway of the code
-
-%-------------------------------------------------------------------------------
-% Write the sparse matrix out to a text file
-%-------------------------------------------------------------------------------
-fid = fopen('tempData.txt', 'w');
-fprintf(fid,'%g\t%g\t%f\n', Undir');
-fclose(fid);
-
-%-------------------------------------------------------------------------------
-% Run OSLOM
-%-------------------------------------------------------------------------------
-numTol = length(Tol);
-fprintf(1,'Running OSLOM on the network across %u tolerances\n',numTol);
-for t = 1:numTol
-    tol = Tol(t);
-    % Run the command to start the OSLOM algorithm:
-    system(sprintf('./oslom_undir -f tempData.txt -w -r %g -t %f', numIters, tol));
-    % Move/rename the important data to base location:
-    system(sprintf('mv tempData.txt_oslo_files/tp %s/OSLOM_tol_%g.txt', outputPath, tol));
-    % Remove unneeded files:
-    system('rm -r tempData.txt_oslo_files');
+oslomBinary = fullfile(sourceCodePath,'OSLOM','oslom_undir');
+if ~isfile(oslomBinary)
+    error('OSLOM binary not found at %s: run SourceCode/OSLOM/compile_all.sh',oslomBinary);
 end
 
-%-------------------------------------------------------------------------------
-% Clean up
-%-------------------------------------------------------------------------------
-% Delete the temporary data file:
-system('rm tempData.txt'); 
-% Return to base directory:
-% cd(pathBase);
+% Write the edge list:
+inputName = 'tempData.txt';
+writeEdgeList(fullfile(workDir,inputName),Undir,true);
+
+% OSLOM overflows a fixed-size path buffer on long file paths (as in macOS
+% temp directories), so run from within workDir using a short relative name.
+% Outputs go to <inputName>_oslo_files, next to the input.
+originalDir = pwd;
+returnToDir = onCleanup(@()cd(originalDir)); %#ok<NASGU>
+cd(workDir);
+fprintf(1,'Running OSLOM at tolerance %g\n',tol);
+runSystemCommand(sprintf('"%s" -f %s -w -r %g -t %f',oslomBinary,inputName,numIters,tol));
+
+tpFile = fullfile(workDir,[inputName,'_oslo_files'],'tp');
 
 end

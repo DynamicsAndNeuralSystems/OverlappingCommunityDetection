@@ -1,15 +1,15 @@
-function [DirList] = Mat2Direct(Mat, numnodes)
-% Converts a matrix to a directed list
+function DirList = Mat2Direct(Mat,numNodes)
+% Converts an adjacency matrix to a directed edge list [from, to, weight],
+% ordered by from-node and then to-node.
+%-------------------------------------------------------------------------------
 
-DirList = zeros(sum(sum(Mat ~= 0)), 3);
-counter = 1; % Counter to put values into the directed list
+if nargin < 2
+    numNodes = size(Mat,1);
+end
+Mat = Mat(1:numNodes,1:numNodes);
 
-for x = 1:numnodes
-    for y = 1:numnodes
-        if Mat(x, y) ~= 0
-            % Places the values into the directed list
-            DirList(counter, :) = [x, y, Mat(x, y)];
-            counter = counter + 1; % Adds 1 to the counter for the next values
-        end
-    end
+% find on the transpose returns entries in row-major order of Mat:
+[to,from] = find(Mat');
+DirList = [from,to,Mat(sub2ind(size(Mat),from,to))];
+
 end
